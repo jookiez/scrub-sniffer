@@ -70,14 +70,14 @@ async function gql(query, variables = {}) {
 // On first call use null to detect role, then re-call with the correct metric.
 // ---------------------------------------------------------------------------
 export async function getCharacterMythicPlusData(name, serverSlug, serverRegion, metric = null) {
-  const metricArg = metric ? `, metric: ${metric}` : '';
+  const metricArg = metric ? `(metric: ${metric})` : '';
   const data = await gql(`
     query MythicPlusData($name: String!, $serverSlug: String!, $serverRegion: String!) {
       characterData {
         character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
           name
           classID
-          mythicPlusRankings(${metricArg.slice(2)})
+          mythicPlusRankings${metricArg}
         }
       }
     }
