@@ -57,7 +57,7 @@ export const ROLE_CONFIG = {
   },
   healer: {
     label:          'Healer',
-    mplusMetric:    'hps',
+    mplusMetric:    'points_and_healing',
     raidMetric:     'hps',
     mplusThreshold: 80,
     mplusIntBonus:  80, // no interrupt bonus — healers often lack interrupt abilities
@@ -67,7 +67,7 @@ export const ROLE_CONFIG = {
   },
   tank: {
     label:          'Tank',
-    mplusMetric:    'dps',
+    mplusMetric:    'points_and_damage',
     raidMetric:     'dps',
     mplusThreshold: 70,      // lower bar — tank dps parses are harder to top
     mplusIntBonus:  70,
@@ -83,7 +83,7 @@ export const ROLE_CONFIG = {
  */
 export function extractSpecFromRankings(charMplusData) {
   return charMplusData?.dpsRankings?.allStars?.[0]?.spec
-      ?? charMplusData?.hpsRankings?.allStars?.[0]?.spec
+      ?? charMplusData?.pointsAndHealingRankings?.allStars?.[0]?.spec
       ?? charMplusData?.pointsAndDamageRankings?.allStars?.[0]?.spec
       ?? null;
 }
