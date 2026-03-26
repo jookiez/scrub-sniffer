@@ -36,7 +36,7 @@ async function sniff(name, serverSlug, reg) {
 
   const mplusRankings = role === 'healer' ? charMplus.hpsRankings
                       : role === 'tank'   ? charMplus.dpsRankings
-                      :                    charMplus.playerscoreRankings;
+                      :                    charMplus.pointsAndDamageRankings;
   const mplus         = summarizeMythicPlus(mplusRankings);
   const encounters = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
 

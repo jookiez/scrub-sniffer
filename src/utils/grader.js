@@ -52,10 +52,44 @@ export function summarizeRaid(heroicBlob, mythicBlob) {
 // ---------------------------------------------------------------------------
 
 export function summarizeMythicPlus(zoneRankingsBlob) {
-  const avgRaw   = zoneRankingsBlob?.bestPerformanceAverage ?? null;
-  const rankings = zoneRankingsBlob?.rankings ?? [];
+  const allRankings = zoneRankingsBlob?.rankings ?? [];
+  const throughput  = zoneRankingsBlob?.throughputRankings;
+  const avgRaw      = zoneRankingsBlob?.bestPerformanceAverage ?? null;
 
-  const runs = rankings
+  // points_and_damage format: throughputRankings is an object keyed by encounter ID,
+  // containing damage percentiles filtered to runs at high enough key levels.
+  // Only dungeons that appear here are meaningful — others were done too low to count.
+  if (throughput) {
+    const nameMap = Object.fromEntries(
+      allRankings.map(r => [String(r.encounter?.id), r.encounter?.name ?? 'Unknown'])
+    );
+    const rankedIds = new Set(Object.keys(throughput));
+
+    const runs = Object.entries(throughput)
+      .map(([id, data]) => ({
+        encounterID: Number(id),
+        dungeon:     nameMap[id] ?? 'Unknown',
+        percentile:  Math.round(data.best_historical_percentile),
+      }))
+      .sort((a, b) => b.percentile - a.percentile);
+
+    const missingDungeons = allRankings
+      .filter(r => !rankedIds.has(String(r.encounter?.id)))
+      .map(r => r.encounter?.name ?? 'Unknown');
+
+    if (runs.length === 0 && avgRaw === null) {
+      return { hasLogs: false, avgPercentile: null, runs: [], missingDungeons };
+    }
+
+    const avgPercentile = avgRaw !== null
+      ? Math.round(avgRaw)
+      : Math.round(runs.reduce((s, r) => s + r.percentile, 0) / runs.length);
+
+    return { hasLogs: true, avgPercentile, runs, missingDungeons };
+  }
+
+  // Standard format (dps, hps): rankings array with rankPercent per dungeon
+  const runs = allRankings
     .filter(r => r.rankPercent !== null && r.rankPercent !== undefined)
     .map(r => ({
       encounterID: r.encounter?.id,
@@ -64,7 +98,7 @@ export function summarizeMythicPlus(zoneRankingsBlob) {
     }))
     .sort((a, b) => b.percentile - a.percentile);
 
-  const missingDungeons = rankings
+  const missingDungeons = allRankings
     .filter(r => r.rankPercent === null || r.rankPercent === undefined)
     .map(r => r.encounter?.name ?? 'Unknown');
 
@@ -142,7 +176,7 @@ export function getVerdict(role, raid, mplus, interrupts) {
     reasons.push('No Mythic+ logs found');
   } else {
     const pct = mplus.avgPercentile;
-    const metricLabel = { playerscore: 'key score', dps: 'damage', hps: 'healing', krsi: 'survivability' }[cfg.mplusMetric] ?? cfg.mplusMetric;
+    const metricLabel = { points_and_damage: 'damage', dps: 'damage', hps: 'healing', krsi: 'survivability' }[cfg.mplusMetric] ?? cfg.mplusMetric;
 
     if (role === 'dps') {
       const { topInterruptor, rank1or2Count, totalRuns } = interrupts;
