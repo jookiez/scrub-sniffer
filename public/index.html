@@ -245,9 +245,10 @@
         <li class="${reasonClass(r)}">${r}</li>
       `).join('');
 
-      const intLine = interrupts.totalRuns > 0
-        ? `<div class="stat-row"><span>Interrupt rank (top-2)</span><span class="stat-val">${interrupts.rank1or2Count}/${interrupts.totalRuns} runs</span></div>`
-        : '';
+      const intLabel = role === 'tank' ? 'Interrupts (top-3)' : 'Interrupts (top-2)';
+      const intCount = role === 'tank' ? interrupts.rank1to3Count : interrupts.rank1or2Count;
+      const intVal   = interrupts.totalRuns > 0 ? `${intCount}/${interrupts.totalRuns} runs` : 'No data';
+      const intLine  = `<div class="stat-row"><span>${intLabel}</span><span class="stat-val">${intVal}</span></div>`;
 
       resultEl.innerHTML = `
         <div class="card ${isPass ? 'verdict-pass' : 'verdict-scrub'}">
