@@ -5,10 +5,10 @@ const TOKEN_URL = 'https://www.warcraftlogs.com/oauth/token';
 const GQL_URL   = 'https://www.warcraftlogs.com/api/v2/client';
 
 // Update this each season. Zone IDs confirmed via worldData.expansions query:
-// TWW S1=39, TWW S2=43, TWW S3=45 (inactive)
-// Current raid: Liberation of Undermine = 42, Manaforge Omega = 44
-const CURRENT_MPLUS_ZONE = 43;
-const CURRENT_RAID_ZONE  = 44;
+// TWW S1=39, TWW S2=43, TWW S3=45, Midnight S1=47
+// Raids: Manaforge Omega=44, VS/DR/MQD=46
+const CURRENT_MPLUS_ZONE = 47;
+const CURRENT_RAID_ZONE  = 46;
 
 let _token       = null;
 let _tokenExpiry = 0;
