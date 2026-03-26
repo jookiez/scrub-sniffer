@@ -12,25 +12,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Step 1: detect role from initial M+ query
-    const charProfile = await getCharacterMythicPlusData(name, server, region, null);
-    if (!charProfile) {
+    // Step 1: M+ query — also used to detect role/spec from allStars
+    const charMplus = await getCharacterMythicPlusData(name, server, region);
+    if (!charMplus) {
       return res.status(404).json({ error: `Character not found: ${name}-${server}` });
     }
 
-    const specName = extractSpecFromRankings(charProfile.mythicPlusRankings);
+    const specName = extractSpecFromRankings(charMplus.zoneRankings);
     const role     = detectRole(specName);
     const cfg      = ROLE_CONFIG[role];
 
-    // Step 2: fetch everything in parallel with correct metric
-    const [charMplus, charRaid, interruptRuns] = await Promise.all([
-      getCharacterMythicPlusData(name, server, region, cfg.mplusMetric),
+    // Step 2: fetch raid + interrupts in parallel with role-correct metric
+    const [charRaid, interruptRuns] = await Promise.all([
       getCharacterRaidData(name, server, region, cfg.raidMetric),
       getRecentKeyInterrupts(name, server, region),
     ]);
 
     const raid       = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
-    const mplus      = summarizeMythicPlus(charMplus?.mythicPlusRankings);
+    const mplus      = summarizeMythicPlus(charMplus.zoneRankings);
     const interrupts = summarizeInterrupts(interruptRuns, name);
     const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts);
 

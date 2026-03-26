@@ -51,22 +51,28 @@ export function summarizeRaid(heroicBlob, mythicBlob) {
 // Mythic+
 // ---------------------------------------------------------------------------
 
-export function summarizeMythicPlus(mythicPlusRankingsBlob, topN = 10) {
-  const rankings = mythicPlusRankingsBlob?.rankings ?? [];
+export function summarizeMythicPlus(zoneRankingsBlob, topN = 10) {
+  // bestPerformanceAverage is the avg percentile across all dungeons WCL calculates for us
+  const avgRaw  = zoneRankingsBlob?.bestPerformanceAverage ?? null;
+  const rankings = zoneRankingsBlob?.rankings ?? [];
 
   const runs = rankings
-    .flatMap(r => {
-      const percentile = r.allStars?.percentile ?? null;
-      const level      = r.runs?.[0]?.keystoneLevel ?? 0;
-      if (percentile === null) return [];
-      return [{ dungeon: r.dungeon?.name ?? 'Unknown', keystoneLevel: level, percentile }];
-    })
-    .sort((a, b) => b.keystoneLevel - a.keystoneLevel)
+    .filter(r => r.rankPercent !== null && r.rankPercent !== undefined)
+    .map(r => ({
+      dungeon:    r.encounter?.name ?? 'Unknown',
+      percentile: Math.round(r.rankPercent),
+    }))
+    .sort((a, b) => b.percentile - a.percentile)
     .slice(0, topN);
 
-  if (runs.length === 0) return { hasLogs: false, avgPercentile: null, runs: [] };
+  if (runs.length === 0 && avgRaw === null) {
+    return { hasLogs: false, avgPercentile: null, runs: [] };
+  }
 
-  const avgPercentile = Math.round(runs.reduce((s, r) => s + r.percentile, 0) / runs.length);
+  const avgPercentile = avgRaw !== null
+    ? Math.round(avgRaw)
+    : Math.round(runs.reduce((s, r) => s + r.percentile, 0) / runs.length);
+
   return { hasLogs: true, avgPercentile, runs };
 }
 

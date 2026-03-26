@@ -21,29 +21,27 @@ const DIVIDER = '='.repeat(56);
 async function sniff(name, serverSlug, reg) {
   console.log(`\n👃 Scrub Sniffer — checking ${name}-${serverSlug} (${reg.toUpperCase()})\n`);
 
-  // Step 1: initial M+ query with no metric — used to detect role/spec
-  const charProfile = await getCharacterMythicPlusData(name, serverSlug, reg, null);
-  if (!charProfile) {
+  // Step 1: M+ query — also used to detect role/spec from allStars
+  const charMplus = await getCharacterMythicPlusData(name, serverSlug, reg);
+  if (!charMplus) {
     console.error(`Character not found: ${name}-${serverSlug}`);
     process.exit(1);
   }
 
-  const specName = extractSpecFromRankings(charProfile.mythicPlusRankings);
+  const specName = extractSpecFromRankings(charMplus.zoneRankings);
   const role     = detectRole(specName);
   const cfg      = ROLE_CONFIG[role];
 
   console.log(`  Detected role: ${cfg.label}${specName ? ` (${specName})` : ''}\n`);
 
-  // Step 2: re-query M+ with role-correct metric (skip if metric didn't change from default)
-  // Also fetch raid rankings and interrupts in parallel using the correct metric
-  const [charMplus, charRaid, interruptRuns] = await Promise.all([
-    getCharacterMythicPlusData(name, serverSlug, reg, cfg.mplusMetric),
+  // Step 2: fetch raid + interrupts in parallel using role-correct metric
+  const [charRaid, interruptRuns] = await Promise.all([
     getCharacterRaidData(name, serverSlug, reg, cfg.raidMetric),
     getRecentKeyInterrupts(name, serverSlug, reg),
   ]);
 
   const raid       = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
-  const mplus      = summarizeMythicPlus(charMplus?.mythicPlusRankings);
+  const mplus      = summarizeMythicPlus(charMplus.zoneRankings);
   const interrupts = summarizeInterrupts(interruptRuns, name);
 
   const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts);

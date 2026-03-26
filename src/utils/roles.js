@@ -78,17 +78,10 @@ export const ROLE_CONFIG = {
 };
 
 /**
- * Extract the primary spec name from a mythicPlusRankings blob.
- * Uses the spec with the highest allStars percentile as the "main" spec.
+ * Extract the primary spec name from a zoneRankings blob (M+ zone).
+ * Uses allStars[0].spec which reflects the character's best-performing spec.
  */
-export function extractSpecFromRankings(mythicPlusRankingsBlob) {
-  const rankings = mythicPlusRankingsBlob?.rankings ?? [];
-  if (rankings.length === 0) return null;
-
-  const best = rankings.reduce((top, r) => {
-    const pct = r.allStars?.percentile ?? -1;
-    return pct > (top?.allStars?.percentile ?? -1) ? r : top;
-  }, null);
-
-  return best?.spec?.name ?? null;
+export function extractSpecFromRankings(zoneRankingsBlob) {
+  const allStars = zoneRankingsBlob?.allStars ?? [];
+  return allStars[0]?.spec ?? null;
 }
