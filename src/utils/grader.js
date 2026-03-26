@@ -138,8 +138,8 @@ export function summarizeInterrupts(interruptRuns, characterName) {
     if (!wasPresent) continue;
 
     runsWithCharacter++;
-    if (idx <= 1) rank1or2Count++;
-    if (idx <= 2) rank1to3Count++;
+    if (idx >= 0 && idx <= 1) rank1or2Count++;
+    if (idx >= 0 && idx <= 2) rank1to3Count++;
   }
 
   return {
