@@ -158,7 +158,8 @@ async function getInterruptsForFight({ code, fightID, dungeon }) {
   if (!report) return null;
 
   const actors = report.masterData?.actors ?? [];
-  const spells = report.table?.data?.entries ?? [];
+  // The table returns [{ entries: [...spells] }] — one wrapper object per fight
+  const spells = report.table?.data?.entries?.[0]?.entries ?? [];
   const totals = {};
 
   // Interrupts table is keyed by spell-interrupted. Aggregate per player across all spells.
