@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scrub Sniffer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #f0b429;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: #8b949e;
+      margin-bottom: 36px;
+      font-size: 0.95rem;
+    }
+
+    form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+
+    input, select {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus { border-color: #f0b429; }
+
+    input[name="name"]   { flex: 2; min-width: 160px; }
+    input[name="server"] { flex: 2; min-width: 160px; }
+    select[name="region"]{ flex: 1; min-width: 80px; }
+
+    button {
+      background: #f0b429;
+      color: #0d1117;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 24px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    button:hover   { background: #f5c842; }
+    button:disabled{ background: #4a3f1a; color: #6e5a1a; cursor: not-allowed; }
+
+    #result { width: 100%; max-width: 640px; }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .verdict-pass { border-color: #3fb950; }
+    .verdict-scrub{ border-color: #f85149; }
+
+    .verdict-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .verdict-badge {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 4px 16px;
+      border-radius: 6px;
+    }
+
+    .badge-pass  { background: #1a3a20; color: #3fb950; }
+    .badge-scrub { background: #3a1a1a; color: #f85149; }
+
+    .char-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+
+    .role-tag {
+      font-size: 0.8rem;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      background: #21262d;
+      color: #8b949e;
+    }
+
+    .reasons { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .reasons li {
+      font-size: 0.9rem;
+      padding: 8px 12px;
+      background: #0d1117;
+      border-radius: 6px;
+      border-left: 3px solid #30363d;
+      color: #8b949e;
+    }
+    .reasons li.ok   { border-color: #3fb950; color: #c9d1d9; }
+    .reasons li.fail { border-color: #f85149; color: #c9d1d9; }
+    .reasons li.warn { border-color: #f0b429; color: #c9d1d9; }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8b949e;
+      margin-bottom: 12px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #21262d;
+      font-size: 0.9rem;
+    }
+
+    .stat-row:last-child { border-bottom: none; }
+    .stat-val { font-weight: 600; color: #e6edf3; }
+
+    .parse-bar-wrap { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+
+    .parse-row {
+      display: grid;
+      grid-template-columns: 1fr 42px 120px;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+
+    .dungeon-name { color: #8b949e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .parse-pct    { text-align: right; font-weight: 600; }
+    .bar-bg       { background: #21262d; border-radius: 4px; height: 8px; overflow: hidden; }
+    .bar-fill     { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+
+    .error-msg {
+      color: #f85149;
+      background: #3a1a1a;
+      border: 1px solid #f85149;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    #spinner {
+      display: none;
+      color: #8b949e;
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>👃 Scrub Sniffer</h1>
+  <p class="subtitle">WoW M+ player vetter — no scrubs allowed</p>
+
+  <form id="lookup-form">
+    <input name="name"   type="text"   placeholder="Character name" required autocomplete="off" />
+    <input name="server" type="text"   placeholder="Server (e.g. area-52)" required autocomplete="off" />
+    <select name="region">
+      <option value="us">US</option>
+      <option value="eu">EU</option>
+      <option value="kr">KR</option>
+      <option value="tw">TW</option>
+    </select>
+    <button type="submit" id="submit-btn">Sniff</button>
+  </form>
+
+  <p id="spinner">Checking logs...</p>
+  <div id="result"></div>
+
+  <script>
+    const form      = document.getElementById('lookup-form');
+    const resultEl  = document.getElementById('result');
+    const spinner   = document.getElementById('spinner');
+    const submitBtn = document.getElementById('submit-btn');
+
+    function parseColor(pct) {
+      if (pct >= 95) return '#ff8000';
+      if (pct >= 75) return '#a335ee';
+      if (pct >= 50) return '#0070dd';
+      if (pct >= 25) return '#1eff00';
+      return '#9d9d9d';
+    }
+
+    function reasonClass(text) {
+      if (text.startsWith('⚠')) return 'warn';
+      if (/too low|no |not |borderline and not|struggles/i.test(text)) return 'fail';
+      return 'ok';
+    }
+
+    function renderResult(data) {
+      const { character, verdict, reasons, mplus, raid, interrupts } = data;
+      const isPass  = verdict === 'PASS';
+      const metricLabels = { dps: 'Damage', hps: 'Healing', krsi: 'Survivability' };
+      const metricLabel  = metricLabels[data.character.role === 'healer' ? 'hps' : data.character.role === 'tank' ? 'krsi' : 'dps'] ?? 'Performance';
+
+      const runsHtml = (mplus.runs ?? []).slice(0, 5).map(run => `
+        <div class="parse-row">
+          <span class="dungeon-name">+${run.keystoneLevel} ${run.dungeon}</span>
+          <span class="parse-pct" style="color:${parseColor(run.percentile)}">${run.percentile}%</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:${run.percentile}%;background:${parseColor(run.percentile)}"></div></div>
+        </div>
+      `).join('');
+
+      const reasonsHtml = reasons.map(r => `
+        <li class="${reasonClass(r)}">${r}</li>
+      `).join('');
+
+      const intLine = interrupts.totalRuns > 0
+        ? `<div class="stat-row"><span>Interrupt rank (top-2)</span><span class="stat-val">${interrupts.rank1or2Count}/${interrupts.totalRuns} runs</span></div>`
+        : '';
+
+      resultEl.innerHTML = `
+        <div class="card ${isPass ? 'verdict-pass' : 'verdict-scrub'}">
+          <div class="verdict-header">
+            <span class="verdict-badge ${isPass ? 'badge-pass' : 'badge-scrub'}">${verdict}</span>
+            <span class="char-name">${character.name}-${character.server}</span>
+            <span class="role-tag">${character.roleLabel}${character.specName ? ' · ' + character.specName : ''}</span>
+          </div>
+          <ul class="reasons">${reasonsHtml}</ul>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Mythic+ ${metricLabel}</div>
+          ${mplus.hasLogs ? `
+            <div class="stat-row"><span>Avg parse</span><span class="stat-val" style="color:${parseColor(mplus.avgPercentile)}">${mplus.avgPercentile}%</span></div>
+            <div class="stat-row"><span>Runs sampled</span><span class="stat-val">${mplus.runs.length}</span></div>
+            ${intLine}
+            <div class="parse-bar-wrap">${runsHtml}</div>
+          ` : '<p style="color:#8b949e;font-size:.9rem">No M+ logs found.</p>'}
+        </div>
+
+        <div class="card">
+          <div class="section-title">Raid</div>
+          ${raid.hasLogs ? `
+            <div class="stat-row"><span>Avg parse</span><span class="stat-val" style="color:${parseColor(raid.avgParse)}">${raid.avgParse}%</span></div>
+            <div class="stat-row"><span>Mythic encounters</span><span class="stat-val">${raid.mythicCount}</span></div>
+            <div class="stat-row"><span>Heroic encounters</span><span class="stat-val">${raid.heroicCount}</span></div>
+          ` : '<p style="color:#8b949e;font-size:.9rem">No heroic/mythic raid logs found.</p>'}
+        </div>
+      `;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name   = form.name.value.trim();
+      const server = form.server.value.trim();
+      const region = form.region.value;
+
+      resultEl.innerHTML = '';
+      spinner.style.display = 'block';
+      submitBtn.disabled = true;
+
+      try {
+        const res  = await fetch(`/api/lookup?name=${encodeURIComponent(name)}&server=${encodeURIComponent(server)}&region=${region}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultEl.innerHTML = `<div class="error-msg">${data.error ?? 'Unknown error'}</div>`;
+        } else {
+          renderResult(data);
+        }
+      } catch (err) {
+        resultEl.innerHTML = `<div class="error-msg">Request failed: ${err.message}</div>`;
+      } finally {
+        spinner.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+
+</body>
+</html>
