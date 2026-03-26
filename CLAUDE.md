@@ -39,44 +39,53 @@ To find new zone IDs: query `worldData { expansions { zones { id name } } }` on 
 
 Role is auto-detected from the spec name in `allStars[0].spec` on M+ rankings.
 
-| Role   | M+ metric            | Raid metric | M+ threshold | M+ int-bonus threshold             | Raid threshold |
-|--------|----------------------|-------------|--------------|------------------------------------|----------------|
-| DPS    | `points_and_damage`  | `dps`       | 80%          | 70% (needs top-2 int ≥50% of runs) | 70%            |
-| Healer | `hps`                | `hps`       | 80%          | no bonus                           | 70%            |
-| Tank   | `dps`                | `krsi`      | 70%          | n/a                                | 70%            |
+| Role   | M+ metric              | Raid metric | M+ threshold | M+ int-bonus threshold             | Raid threshold |
+|--------|------------------------|-------------|--------------|------------------------------------|----------------|
+| DPS    | `points_and_damage`    | `dps`       | 80%          | 70% (needs top-2 int ≥50% of runs) | 70%            |
+| Healer | `points_and_healing`   | `hps`       | 80%          | no bonus                           | 70%            |
+| Tank   | `points_and_damage`    | `dps`       | 70%          | n/a                                | 70%            |
 
-**Tank and healer M+ metrics are still TBD / under review.**
+Notes:
+- `krsi` (survivability index) is **deprecated** — returns no data for current zones. Do not use.
+- Tanks and DPS share the same M+ rankings blob (`pointsAndDamageRankings`).
 
-## M+ metric details
+## M+ metric details — `points_and_damage` / `points_and_healing`
 
-### DPS — `points_and_damage`
-Returns two things in one query:
-- `rankings[].rankPercent` — key score % (ignored for grading)
-- `throughputRankings` — object keyed by encounter ID, only populated for dungeons done at a high enough key level. Contains `best_historical_percentile` (damage % filtered to same key tier). **This is what we use.**
+These metrics return two things:
+- `rankings[].rankPercent` — key score % (not used for grading)
+- `throughputRankings` — object keyed by encounter ID, **only populated for dungeons done at a high enough key level**. Contains `best_historical_percentile` (damage or healing % filtered to same key tier). **This is what we grade on.**
 
-`grader.summarizeMythicPlus` detects the presence of `throughputRankings` and reads from it instead of `rankings[].rankPercent`. `bestPerformanceAverage` is already the avg of throughput values.
+`grader.summarizeMythicPlus` detects the presence of `throughputRankings` and reads from it. `bestPerformanceAverage` from the blob is already the avg of those filtered values.
 
-### Tank — `dps` (role-compared within tank spec)
-Uses standard `rankings[].rankPercent` format. `krsi` is NOT available for M+ zones.
+Dungeons not in `throughputRankings` (too low a key, or not run) are surfaced as missing.
 
-### Healer — `hps` (role-compared within healer spec)
-Uses standard `rankings[].rankPercent` format.
+## M+ query — three rankings blobs fetched in one request
 
-## Key GraphQL details
+```graphql
+pointsAndDamageRankings:  zoneRankings(zoneID: $zoneID, metric: points_and_damage)
+pointsAndHealingRankings: zoneRankings(zoneID: $zoneID, metric: points_and_healing)
+dpsRankings:              zoneRankings(zoneID: $zoneID, metric: dps)
+```
 
-- Character M+ uses `zoneRankings(zoneID: $zoneID, metric: ...)` — NOT `mythicPlusRankings` (doesn't exist)
-- Three rankings blobs fetched per M+ query: `pointsAndDamageRankings`, `dpsRankings`, `hpsRankings`
-- Role is detected first (from `dpsRankings.allStars[0].spec` or `hpsRankings.allStars[0].spec`), then the correct blob is passed to the grader
+- `dpsRankings` is kept for spec detection only (`allStars[0].spec` reliably identifies DPS and tank specs)
+- `pointsAndHealingRankings.allStars[0].spec` is used as fallback for healer spec detection
+- Role is detected first, then the correct blob is passed to `summarizeMythicPlus`
+
+## Interrupt logic
+
+- Source: `encounterRankings` per dungeon → best run report code → interrupt table
 - Interrupt table nesting: `table.data.entries[0].entries` (double nested — outer is per-fight, inner is per-spell)
-- Interrupt table is keyed by spell, not player — must aggregate per player across all spell entries
-- `encounterRankings` is used to get the best run's report code + fight ID per dungeon for interrupt lookups
+- Table is keyed by spell interrupted, not player — must aggregate per player across all spells
+- If a dungeon has no report code (private/expired log), a stub is returned with the character in `actorNames` so the run still counts in the denominator
+- Players with 0 interrupts don't appear in the interrupt table — `actorNames` (all group members from `masterData`) is used to detect presence
+- Rank check must be `idx >= 0 && idx <= N` — `idx = -1` (not found) must not be treated as a top rank
 
 ## Running locally
 
 ```bash
 node --env-file=.env src/index.js <characterName> <server> [region]
 # e.g.
-node --env-file=.env src/index.js Nightmehr alleria us
+node --env-file=.env src/index.js Defnotash alleria us
 ```
 
 ## Deploying
