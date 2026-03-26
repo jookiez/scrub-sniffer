@@ -1,0 +1,14 @@
+{
+  "name": "scrub-sniffer",
+  "version": "1.0.0",
+  "description": "WoW M+ player vetting tool — grades players by damage parses, interrupts, and raid history",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=.env src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
