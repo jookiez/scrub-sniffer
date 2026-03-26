@@ -48,7 +48,7 @@ async function sniff(name, serverSlug, reg) {
 
   const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts);
 
-  const metricLabel = { dps: 'Damage', hps: 'Healing', krsi: 'Survivability' }[cfg.mplusMetric] ?? 'Performance';
+  const metricLabel = 'Score'; // M+ always uses playerscore (key level × time), not role-specific metrics
 
   // --- Output ---
   console.log(DIVIDER);

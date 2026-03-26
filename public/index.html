@@ -231,8 +231,7 @@
       const { character, verdict, reasons, mplus, raid, interrupts } = data;
       const { role } = character;
       const isPass  = verdict === 'PASS';
-      const metricLabels = { dps: 'Damage', hps: 'Healing', krsi: 'Survivability' };
-      const metricLabel  = metricLabels[role === 'healer' ? 'hps' : role === 'tank' ? 'krsi' : 'dps'] ?? 'Performance';
+      const metricLabel = 'Score'; // M+ always uses playerscore (key level × time), not role-specific metrics
 
       const runsHtml = (mplus.runs ?? []).slice(0, 5).map(run => `
         <div class="parse-row">
