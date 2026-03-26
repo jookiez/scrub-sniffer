@@ -13,7 +13,7 @@
  * Tank:
  *   - M+ survivability (KRSI) parse avg >= 70%  → PASS
  *   - Raid heroic/mythic KRSI avg >= 70%  (required)
- *   - Interrupts are EXPECTED — warn if they're not top-3
+ *   - Interrupts are EXPECTED — warn if they're not top-2
  *
  * All roles: must have at least one heroic or mythic raid encounter logged.
  */
@@ -144,7 +144,7 @@ export function summarizeInterrupts(interruptRuns, characterName) {
 
   return {
     topInterruptor:     runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.5,
-    topTankInterruptor: runsWithCharacter > 0 && rank1to3Count  / runsWithCharacter >= 0.5,
+    topTankInterruptor: runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.5,
     rank1or2Count,
     rank1to3Count,
     totalRuns: runsWithCharacter, // denominator = only runs the character actually played
@@ -214,7 +214,7 @@ export function getVerdict(role, raid, mplus, interrupts) {
       }
 
     } else if (role === 'tank') {
-      const { topTankInterruptor, rank1to3Count, totalRuns } = interrupts;
+      const { topTankInterruptor, rank1or2Count, totalRuns } = interrupts;
 
       if (pct >= cfg.mplusThreshold) {
         reasons.push(`M+ ${metricLabel}: ${pct}% avg — solid tank`);
@@ -226,10 +226,10 @@ export function getVerdict(role, raid, mplus, interrupts) {
       // Interrupts are expected for tanks — warn but don't auto-fail
       if (totalRuns > 0 && !topTankInterruptor) {
         reasons.push(
-          `⚠ Interrupt warning: top-3 in only ${rank1to3Count}/${totalRuns} runs — tanks should own interrupts`
+          `⚠ Interrupt warning: top-2 in only ${rank1or2Count}/${totalRuns} runs — tanks should own interrupts`
         );
       } else if (totalRuns > 0) {
-        reasons.push(`Interrupts OK: top-3 in ${rank1to3Count}/${totalRuns} runs`);
+        reasons.push(`Interrupts OK: top-2 in ${rank1or2Count}/${totalRuns} runs`);
       }
     }
   }
