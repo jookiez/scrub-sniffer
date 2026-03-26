@@ -1,4 +1,4 @@
-import { getCharacterMythicPlusData, getCharacterRaidData, getRecentKeyInterrupts } from '../src/api/warcraftlogs-v2.js';
+import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBestRuns } from '../src/api/warcraftlogs-v2.js';
 import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, getVerdict } from '../src/utils/grader.js';
 import { detectRole, extractSpecFromRankings, ROLE_CONFIG } from '../src/utils/roles.js';
 
@@ -22,14 +22,16 @@ export default async function handler(req, res) {
     const role     = detectRole(specName);
     const cfg      = ROLE_CONFIG[role];
 
+    const mplus      = summarizeMythicPlus(charMplus.zoneRankings);
+    const encounters = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
+
     // Step 2: fetch raid + interrupts in parallel with role-correct metric
     const [charRaid, interruptRuns] = await Promise.all([
       getCharacterRaidData(name, server, region, cfg.raidMetric),
-      getRecentKeyInterrupts(name, server, region),
+      getInterruptsFromBestRuns(name, server, region, encounters),
     ]);
 
-    const raid       = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
-    const mplus      = summarizeMythicPlus(charMplus.zoneRankings);
+    const raid = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
     const interrupts = summarizeInterrupts(interruptRuns, name);
     const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts);
 

@@ -105,48 +105,44 @@ export async function getCharacterRaidData(name, serverSlug, serverRegion, metri
 }
 
 // ---------------------------------------------------------------------------
-// Interrupt data — fetches recent M+ reports then queries interrupt table
-// per fight. Returns per-player interrupt counts ranked highest to lowest.
+// Interrupt data — uses encounterRankings to find the report code + fight ID
+// for each dungeon's best run, then queries interrupt tables for those fights.
+// encounters = array of { id, name } from zoneRankings where rankPercent != null
 // ---------------------------------------------------------------------------
-export async function getRecentKeyInterrupts(name, serverSlug, serverRegion) {
-  const data = await gql(`
-    query RecentReports($name: String!, $serverSlug: String!, $serverRegion: String!) {
+export async function getInterruptsFromBestRuns(name, serverSlug, serverRegion, encounters) {
+  if (!encounters?.length) return [];
+
+  // Batch all encounterRankings into a single GraphQL query using field aliases
+  const fields = encounters.map(e => `enc_${e.id}: encounterRankings(encounterID: ${e.id})`).join('\n          ');
+  const data   = await gql(`
+    query BestRuns($name: String!, $serverSlug: String!, $serverRegion: String!) {
       characterData {
         character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
-          recentReports(limit: 10) {
-            data {
-              code
-              fights {
-                id
-                keystoneLevel
-                name
-                friendlyPlayers
-              }
-            }
-          }
+          ${fields}
         }
       }
     }
   `, { name, serverSlug, serverRegion });
 
-  const reports = data?.characterData?.character?.recentReports?.data ?? [];
+  const char = data?.characterData?.character;
+  if (!char) return [];
 
-  // Only care about M+ fights (keystoneLevel is non-null)
-  const mplusFights = reports
-    .flatMap(r => (r.fights ?? [])
-      .filter(f => f.keystoneLevel)
-      .map(f => ({ code: r.code, fightID: f.id, keystoneLevel: f.keystoneLevel, dungeon: f.name, friendlyPlayers: f.friendlyPlayers }))
-    )
-    .sort((a, b) => b.keystoneLevel - a.keystoneLevel)
-    .slice(0, 10);
+  const bestRuns = encounters
+    .map(enc => {
+      const best = char[`enc_${enc.id}`]?.ranks?.[0];
+      if (!best?.report?.code) return null;
+      return { dungeon: enc.name, code: best.report.code, fightID: best.report.fightID };
+    })
+    .filter(Boolean);
 
-  if (mplusFights.length === 0) return [];
+  if (!bestRuns.length) return [];
 
-  const results = await Promise.all(mplusFights.map(f => getInterruptsFromFight(f)));
+  // Query interrupt tables for each best run in parallel
+  const results = await Promise.all(bestRuns.map(run => getInterruptsForFight(run)));
   return results.filter(Boolean);
 }
 
-export async function getInterruptsFromFight({ code, fightID, keystoneLevel, dungeon, friendlyPlayers }) {
+async function getInterruptsForFight({ code, fightID, dungeon }) {
   const data = await gql(`
     query FightInterrupts($code: String!, $fightIDs: [Int]) {
       reportData {
@@ -161,27 +157,27 @@ export async function getInterruptsFromFight({ code, fightID, keystoneLevel, dun
   const report = data?.reportData?.report;
   if (!report) return null;
 
-  const actors  = report.masterData?.actors ?? [];
-  // The Interrupts table is keyed by spell-interrupted, not by player.
-  // Each entry has a `details` array of { id, name, total } per player.
-  // Aggregate totals across all spells per player.
-  const spells  = report.table?.data?.entries ?? [];
-  const totals  = {};
+  const actors = report.masterData?.actors ?? [];
+  const spells = report.table?.data?.entries ?? [];
+  const totals = {};
 
+  // Interrupts table is keyed by spell-interrupted. Aggregate per player across all spells.
+  // Filter to only actors of type Player (actors list already scoped to players).
+  const playerIDs = new Set(actors.map(a => a.id));
   for (const spell of spells) {
     for (const detail of spell.details ?? []) {
-      if (!friendlyPlayers?.includes(detail.id)) continue;
+      if (!playerIDs.has(detail.id)) continue;
       totals[detail.id] = (totals[detail.id] ?? 0) + (detail.total ?? 0);
     }
   }
 
   const players = Object.entries(totals)
     .map(([id, interrupts]) => ({
-      id:   Number(id),
-      name: actors.find(a => a.id === Number(id))?.name ?? 'Unknown',
+      id:         Number(id),
+      name:       actors.find(a => a.id === Number(id))?.name ?? 'Unknown',
       interrupts,
     }))
     .sort((a, b) => b.interrupts - a.interrupts);
 
-  return { code, fightID, keystoneLevel, dungeon, players };
+  return { code, fightID, dungeon, players };
 }

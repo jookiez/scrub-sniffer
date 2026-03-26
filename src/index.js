@@ -4,7 +4,7 @@
  * Example: node --env-file=.env src/index.js Arthas area-52 us
  */
 
-import { getCharacterMythicPlusData, getCharacterRaidData, getRecentKeyInterrupts } from './api/warcraftlogs-v2.js';
+import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBestRuns } from './api/warcraftlogs-v2.js';
 import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, getVerdict } from './utils/grader.js';
 import { detectRole, extractSpecFromRankings, ROLE_CONFIG } from './utils/roles.js';
 
@@ -34,14 +34,16 @@ async function sniff(name, serverSlug, reg) {
 
   console.log(`  Detected role: ${cfg.label}${specName ? ` (${specName})` : ''}\n`);
 
+  const mplus    = summarizeMythicPlus(charMplus.zoneRankings);
+  const encounters = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
+
   // Step 2: fetch raid + interrupts in parallel using role-correct metric
   const [charRaid, interruptRuns] = await Promise.all([
     getCharacterRaidData(name, serverSlug, reg, cfg.raidMetric),
-    getRecentKeyInterrupts(name, serverSlug, reg),
+    getInterruptsFromBestRuns(name, serverSlug, reg, encounters),
   ]);
 
-  const raid       = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
-  const mplus      = summarizeMythicPlus(charMplus.zoneRankings);
+  const raid = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
   const interrupts = summarizeInterrupts(interruptRuns, name);
 
   const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts);
