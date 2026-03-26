@@ -86,23 +86,25 @@ export function summarizeInterrupts(interruptRuns, characterName) {
   }
 
   const nameLower = characterName.toLowerCase();
-  let rank1or2Count = 0;
-  let rank1to3Count = 0;
+  let rank1or2Count    = 0;
+  let rank1to3Count    = 0;
+  let runsWithCharacter = 0;
 
   for (const run of interruptRuns) {
     const players = run.players ?? [];
     const idx     = players.findIndex(p => p.name.toLowerCase() === nameLower);
-    if (idx === 0 || idx === 1) rank1or2Count++;
-    if (idx >= 0 && idx <= 2)   rank1to3Count++;
+    if (idx === -1) continue; // character wasn't in this fight — skip entirely
+    runsWithCharacter++;
+    if (idx <= 1) rank1or2Count++;
+    if (idx <= 2) rank1to3Count++;
   }
 
-  const total = interruptRuns.length;
   return {
-    topInterruptor:     total > 0 && rank1or2Count / total >= 0.5,  // DPS: top-2 in 50%+ of runs
-    topTankInterruptor: total > 0 && rank1to3Count  / total >= 0.5, // Tank: top-3 in 50%+ of runs
+    topInterruptor:     runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.5,
+    topTankInterruptor: runsWithCharacter > 0 && rank1to3Count  / runsWithCharacter >= 0.5,
     rank1or2Count,
     rank1to3Count,
-    totalRuns: total,
+    totalRuns: runsWithCharacter, // denominator = only runs the character actually played
   };
 }
 
