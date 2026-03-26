@@ -18,11 +18,12 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: `Character not found: ${name}-${server}` });
     }
 
-    const specName = extractSpecFromRankings(charMplus.zoneRankings);
+    const specName = extractSpecFromRankings(charMplus);
     const role     = detectRole(specName);
     const cfg      = ROLE_CONFIG[role];
 
-    const mplus      = summarizeMythicPlus(charMplus.zoneRankings);
+    const mplusRankings = role === 'healer' ? charMplus.hpsRankings : charMplus.dpsRankings;
+    const mplus         = summarizeMythicPlus(mplusRankings);
     const encounters = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
 
     // Step 2: fetch raid + interrupts in parallel with role-correct metric

@@ -78,10 +78,11 @@ export const ROLE_CONFIG = {
 };
 
 /**
- * Extract the primary spec name from a zoneRankings blob (M+ zone).
- * Uses allStars[0].spec which reflects the character's best-performing spec.
+ * Extract the primary spec name from M+ data (which has dpsRankings + hpsRankings).
+ * Tries dps first (covers DPS and tank), then hps (healers).
  */
-export function extractSpecFromRankings(zoneRankingsBlob) {
-  const allStars = zoneRankingsBlob?.allStars ?? [];
-  return allStars[0]?.spec ?? null;
+export function extractSpecFromRankings(charMplusData) {
+  return charMplusData?.dpsRankings?.allStars?.[0]?.spec
+      ?? charMplusData?.hpsRankings?.allStars?.[0]?.spec
+      ?? null;
 }

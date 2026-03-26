@@ -63,10 +63,10 @@ async function gql(query, variables = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// M+ rankings — uses zoneRankings with the current M+ season zone.
-// Returns bestPerformanceAverage (avg %) + per-dungeon rankPercent.
-// spec is embedded in allStars[0] for role detection.
-// metric is omitted — API defaults to playerscore for M+ zones.
+// M+ rankings — fetches both dps and hps metrics in one request using aliases.
+// Role detection uses allStars spec from whichever metric has data.
+// Caller picks dpsRankings (DPS + tank) or hpsRankings (healer) based on role.
+// krsi is not supported on M+ zones — dps compares within role automatically.
 // ---------------------------------------------------------------------------
 export async function getCharacterMythicPlusData(name, serverSlug, serverRegion) {
   const data = await gql(`
@@ -75,7 +75,8 @@ export async function getCharacterMythicPlusData(name, serverSlug, serverRegion)
         character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
           name
           classID
-          zoneRankings(zoneID: $zoneID)
+          dpsRankings: zoneRankings(zoneID: $zoneID, metric: dps)
+          hpsRankings: zoneRankings(zoneID: $zoneID, metric: hps)
         }
       }
     }

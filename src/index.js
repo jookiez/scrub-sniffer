@@ -28,13 +28,14 @@ async function sniff(name, serverSlug, reg) {
     process.exit(1);
   }
 
-  const specName = extractSpecFromRankings(charMplus.zoneRankings);
+  const specName = extractSpecFromRankings(charMplus);
   const role     = detectRole(specName);
   const cfg      = ROLE_CONFIG[role];
 
   console.log(`  Detected role: ${cfg.label}${specName ? ` (${specName})` : ''}\n`);
 
-  const mplus    = summarizeMythicPlus(charMplus.zoneRankings);
+  const mplusRankings = role === 'healer' ? charMplus.hpsRankings : charMplus.dpsRankings;
+  const mplus         = summarizeMythicPlus(mplusRankings);
   const encounters = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
 
   // Step 2: fetch raid + interrupts in parallel using role-correct metric
