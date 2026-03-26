@@ -22,7 +22,9 @@ export default async function handler(req, res) {
     const role     = detectRole(specName);
     const cfg      = ROLE_CONFIG[role];
 
-    const mplusRankings = role === 'healer' ? charMplus.hpsRankings : charMplus.dpsRankings;
+    const mplusRankings = role === 'healer' ? charMplus.hpsRankings
+                        : role === 'tank'   ? charMplus.dpsRankings
+                        :                    charMplus.playerscoreRankings;
     const mplus         = summarizeMythicPlus(mplusRankings);
     const encounters = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
 

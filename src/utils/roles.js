@@ -47,7 +47,7 @@ export function detectRole(specName) {
 export const ROLE_CONFIG = {
   dps: {
     label:          'DPS',
-    mplusMetric:    'dps',
+    mplusMetric:    'playerscore',
     raidMetric:     'dps',
     mplusThreshold: 80,
     mplusIntBonus:  70,
@@ -84,5 +84,6 @@ export const ROLE_CONFIG = {
 export function extractSpecFromRankings(charMplusData) {
   return charMplusData?.dpsRankings?.allStars?.[0]?.spec
       ?? charMplusData?.hpsRankings?.allStars?.[0]?.spec
+      ?? charMplusData?.playerscoreRankings?.allStars?.[0]?.spec
       ?? null;
 }

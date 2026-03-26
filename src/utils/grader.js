@@ -142,7 +142,7 @@ export function getVerdict(role, raid, mplus, interrupts) {
     reasons.push('No Mythic+ logs found');
   } else {
     const pct = mplus.avgPercentile;
-    const metricLabel = { dps: 'damage', hps: 'healing', krsi: 'survivability' }[cfg.mplusMetric] ?? cfg.mplusMetric;
+    const metricLabel = { playerscore: 'key score', dps: 'damage', hps: 'healing', krsi: 'survivability' }[cfg.mplusMetric] ?? cfg.mplusMetric;
 
     if (role === 'dps') {
       const { topInterruptor, rank1or2Count, totalRuns } = interrupts;

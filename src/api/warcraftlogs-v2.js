@@ -65,7 +65,7 @@ async function gql(query, variables = {}) {
 // ---------------------------------------------------------------------------
 // M+ rankings — fetches both dps and hps metrics in one request using aliases.
 // Role detection uses allStars spec from whichever metric has data.
-// Caller picks dpsRankings (DPS + tank) or hpsRankings (healer) based on role.
+// Caller picks playerscoreRankings (DPS), dpsRankings (tank), or hpsRankings (healer) based on role.
 // krsi is not supported on M+ zones — dps compares within role automatically.
 // ---------------------------------------------------------------------------
 export async function getCharacterMythicPlusData(name, serverSlug, serverRegion) {
@@ -75,8 +75,9 @@ export async function getCharacterMythicPlusData(name, serverSlug, serverRegion)
         character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
           name
           classID
-          dpsRankings: zoneRankings(zoneID: $zoneID, metric: dps)
-          hpsRankings: zoneRankings(zoneID: $zoneID, metric: hps)
+          playerscoreRankings: zoneRankings(zoneID: $zoneID, metric: playerscore)
+          dpsRankings:         zoneRankings(zoneID: $zoneID, metric: dps)
+          hpsRankings:         zoneRankings(zoneID: $zoneID, metric: hps)
         }
       }
     }
