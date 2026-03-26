@@ -162,14 +162,24 @@ export async function getInterruptsFromFight({ code, fightID, keystoneLevel, dun
   if (!report) return null;
 
   const actors  = report.masterData?.actors ?? [];
-  const entries = report.table?.data?.entries ?? [];
+  // The Interrupts table is keyed by spell-interrupted, not by player.
+  // Each entry has a `details` array of { id, name, total } per player.
+  // Aggregate totals across all spells per player.
+  const spells  = report.table?.data?.entries ?? [];
+  const totals  = {};
 
-  const players = entries
-    .filter(e => friendlyPlayers?.includes(e.id))
-    .map(e => ({
-      id:         e.id,
-      name:       actors.find(a => a.id === e.id)?.name ?? e.name ?? 'Unknown',
-      interrupts: e.total ?? 0,
+  for (const spell of spells) {
+    for (const detail of spell.details ?? []) {
+      if (!friendlyPlayers?.includes(detail.id)) continue;
+      totals[detail.id] = (totals[detail.id] ?? 0) + (detail.total ?? 0);
+    }
+  }
+
+  const players = Object.entries(totals)
+    .map(([id, interrupts]) => ({
+      id:   Number(id),
+      name: actors.find(a => a.id === Number(id))?.name ?? 'Unknown',
+      interrupts,
     }))
     .sort((a, b) => b.interrupts - a.interrupts);
 

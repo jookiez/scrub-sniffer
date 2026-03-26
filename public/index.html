@@ -235,7 +235,7 @@
 
       const runsHtml = (mplus.runs ?? []).slice(0, 5).map(run => `
         <div class="parse-row">
-          <span class="dungeon-name">+${run.keystoneLevel} ${run.dungeon}</span>
+          <span class="dungeon-name">${run.dungeon}</span>
           <span class="parse-pct" style="color:${parseColor(run.percentile)}">${run.percentile}%</span>
           <div class="bar-bg"><div class="bar-fill" style="width:${run.percentile}%;background:${parseColor(run.percentile)}"></div></div>
         </div>

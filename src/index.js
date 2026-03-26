@@ -61,7 +61,7 @@ async function sniff(name, serverSlug, reg) {
     console.log('\n  Top Keys:');
     for (const run of mplus.runs.slice(0, 5)) {
       const bar = '█'.repeat(Math.round(run.percentile / 5)).padEnd(20);
-      console.log(`    +${String(run.keystoneLevel).padEnd(3)} ${run.dungeon.padEnd(28)} ${String(run.percentile).padStart(3)}%  ${bar}`);
+      console.log(`    ${run.dungeon.padEnd(32)} ${String(run.percentile).padStart(3)}%  ${bar}`);
     }
   } else {
     console.log('  No M+ logs found.');
