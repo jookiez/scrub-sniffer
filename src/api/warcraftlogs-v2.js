@@ -129,19 +129,23 @@ export async function getInterruptsFromBestRuns(name, serverSlug, serverRegion, 
   const char = data?.characterData?.character;
   if (!char) return [];
 
-  const bestRuns = encounters
-    .map(enc => {
-      const best = char[`enc_${enc.id}`]?.ranks?.[0];
-      if (!best?.report?.code) return null;
-      return { dungeon: enc.name, code: best.report.code, fightID: best.report.fightID };
-    })
-    .filter(Boolean);
+  const nameLower = name.toLowerCase();
+  const realRuns  = [];
+  const stubs     = [];
 
-  if (!bestRuns.length) return [];
+  for (const enc of encounters) {
+    const best = char[`enc_${enc.id}`]?.ranks?.[0];
+    if (best?.report?.code) {
+      realRuns.push({ dungeon: enc.name, code: best.report.code, fightID: best.report.fightID });
+    } else {
+      // No report code available (private/expired log) — return a stub so this run
+      // still counts in the interrupt denominator since the character clearly did it.
+      stubs.push({ dungeon: enc.name, players: [], actorNames: [nameLower] });
+    }
+  }
 
-  // Query interrupt tables for each best run in parallel
-  const results = await Promise.all(bestRuns.map(run => getInterruptsForFight(run)));
-  return results.filter(Boolean);
+  const fetched = await Promise.all(realRuns.map(run => getInterruptsForFight(run)));
+  return [...fetched.filter(Boolean), ...stubs];
 }
 
 async function getInterruptsForFight({ code, fightID, dungeon }) {
