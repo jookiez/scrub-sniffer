@@ -67,9 +67,9 @@ export const ROLE_CONFIG = {
   },
   tank: {
     label:          'Tank',
-    mplusMetric:    'krsi',  // Kihra's Resolve-Weighted Survivability Index
-    raidMetric:     'krsi',
-    mplusThreshold: 70,      // lower bar — survivability parses are harder to top
+    mplusMetric:    'dps',
+    raidMetric:     'dps',
+    mplusThreshold: 70,      // lower bar — tank dps parses are harder to top
     mplusIntBonus:  70,
     raidThreshold:  70,
     interruptBonus: false,
