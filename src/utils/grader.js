@@ -128,9 +128,15 @@ export function summarizeInterrupts(interruptRuns, characterName) {
   let runsWithCharacter = 0;
 
   for (const run of interruptRuns) {
-    const players = run.players ?? [];
-    const idx     = players.findIndex(p => p.name.toLowerCase() === nameLower);
-    if (idx === -1) continue; // character wasn't in this fight — skip entirely
+    const players    = run.players ?? [];
+    const actorNames = run.actorNames ?? [];
+    const idx        = players.findIndex(p => p.name.toLowerCase() === nameLower);
+
+    // Character must have been in the group. Check interrupt list first; fall back
+    // to actorNames so players with 0 interrupts still count in the denominator.
+    const wasPresent = idx !== -1 || actorNames.includes(nameLower);
+    if (!wasPresent) continue;
+
     runsWithCharacter++;
     if (idx <= 1) rank1or2Count++;
     if (idx <= 2) rank1to3Count++;

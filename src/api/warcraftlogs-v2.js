@@ -182,5 +182,10 @@ async function getInterruptsForFight({ code, fightID, dungeon }) {
     }))
     .sort((a, b) => b.interrupts - a.interrupts);
 
-  return { code, fightID, dungeon, players };
+  // actorNames includes everyone in the group, even players with 0 interrupts.
+  // summarizeInterrupts uses this to count runs the character participated in
+  // regardless of whether they appear in the interrupt table.
+  const actorNames = actors.map(a => a.name.toLowerCase());
+
+  return { code, fightID, dungeon, players, actorNames };
 }
