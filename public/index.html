@@ -56,8 +56,39 @@
     input:focus, select:focus { border-color: #f0b429; }
 
     input[name="name"]   { flex: 2; min-width: 160px; }
-    input[name="server"] { flex: 2; min-width: 160px; }
     select[name="region"]{ flex: 1; min-width: 80px; }
+
+    .server-combo { position: relative; flex: 2; min-width: 160px; }
+    .server-combo input { width: 100%; }
+
+    .server-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 3px);
+      left: 0; right: 0;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 100;
+      list-style: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .server-dropdown.open { display: block; }
+    .server-dropdown li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: #c9d1d9;
+    }
+    .server-dropdown li:hover,
+    .server-dropdown li.sd-active { background: #21262d; }
+    .server-dropdown .sd-slug { color: #8b949e; font-family: monospace; font-size: 0.78rem; flex-shrink: 0; }
 
     button {
       background: #f0b429;
@@ -209,7 +240,10 @@
 
   <form id="lookup-form">
     <input name="name"   type="text"   placeholder="Character name" required autocomplete="off" />
-    <input name="server" type="text"   placeholder="Server (e.g. area-52)" required autocomplete="off" />
+    <div class="server-combo">
+      <input name="server" type="text" placeholder="Server (e.g. area-52)" required autocomplete="off" id="server-input" />
+      <ul class="server-dropdown" id="server-dropdown" role="listbox"></ul>
+    </div>
     <select name="region">
       <option value="us">US</option>
       <option value="eu">EU</option>
@@ -223,6 +257,252 @@
   <div id="result"></div>
 
   <script>
+    // ---------------------------------------------------------------------------
+    // Server combobox
+    // ---------------------------------------------------------------------------
+    const SERVERS = {
+      us: [
+        {n:'Aegwynn',s:'aegwynn'},{n:'Aerie Peak',s:'aerie-peak'},{n:'Agamaggan',s:'agamaggan'},
+        {n:'Aggramar',s:'aggramar'},{n:'Alexstrasza',s:'alexstrasza'},{n:'Alleria',s:'alleria'},
+        {n:'Altar of Storms',s:'altar-of-storms'},{n:'Alterac Mountains',s:'alterac-mountains'},
+        {n:'Andorhal',s:'andorhal'},{n:'Anetheron',s:'anetheron'},{n:'Antonidas',s:'antonidas'},
+        {n:"Anub'arak",s:'anubarak'},{n:'Anvilmar',s:'anvilmar'},{n:'Arathor',s:'arathor'},
+        {n:'Archimonde',s:'archimonde'},{n:'Area 52',s:'area-52'},{n:'Argent Dawn',s:'argent-dawn'},
+        {n:'Arthas',s:'arthas'},{n:'Arygos',s:'arygos'},{n:'Azgalor',s:'azgalor'},
+        {n:'Azjol-Nerub',s:'azjol-nerub'},{n:'Azralon',s:'azralon'},{n:'Azshara',s:'azshara'},
+        {n:'Azuremyst',s:'azuremyst'},{n:'Baelgun',s:'baelgun'},{n:'Balnazzar',s:'balnazzar'},
+        {n:'Barthilas',s:'barthilas'},{n:'Black Dragonflight',s:'black-dragonflight'},
+        {n:'Blackhand',s:'blackhand'},{n:'Blackrock',s:'blackrock'},
+        {n:'Blackwater Raiders',s:'blackwater-raiders'},{n:'Blackwing Lair',s:'blackwing-lair'},
+        {n:"Blade's Edge",s:'blades-edge'},{n:'Bladefist',s:'bladefist'},
+        {n:'Bleeding Hollow',s:'bleeding-hollow'},{n:'Blood Furnace',s:'blood-furnace'},
+        {n:'Bloodhoof',s:'bloodhoof'},{n:'Bloodscalp',s:'bloodscalp'},
+        {n:'Bonechewer',s:'bonechewer'},{n:'Borean Tundra',s:'borean-tundra'},
+        {n:'Boulderfist',s:'boulderfist'},{n:'Bronze Dragonflight',s:'bronze-dragonflight'},
+        {n:'Bronzebeard',s:'bronzebeard'},{n:'Burning Blade',s:'burning-blade'},
+        {n:'Burning Legion',s:'burning-legion'},{n:'Caelestrasz',s:'caelestrasz'},
+        {n:'Cairne',s:'cairne'},{n:'Cenarion Circle',s:'cenarion-circle'},
+        {n:'Cenarion Expedition',s:'cenarion-expedition'},{n:"Cho'gall",s:'chogall'},
+        {n:'Chromaggus',s:'chromaggus'},{n:'Coilfang',s:'coilfang'},
+        {n:'Crushridge',s:'crushridge'},{n:'Daggerspine',s:'daggerspine'},
+        {n:'Dalaran',s:'dalaran'},{n:'Dalvengyr',s:'dalvengyr'},{n:'Dark Iron',s:'dark-iron'},
+        {n:'Darkspear',s:'darkspear'},{n:'Darrowmere',s:'darrowmere'},
+        {n:"Dath'Remar",s:'dathremar'},{n:'Dawnbringer',s:'dawnbringer'},
+        {n:'Deathwing',s:'deathwing'},{n:'Demon Soul',s:'demon-soul'},{n:'Dentarg',s:'dentarg'},
+        {n:'Destromath',s:'destromath'},{n:'Dethecus',s:'dethecus'},{n:'Detheroc',s:'detheroc'},
+        {n:'Doomhammer',s:'doomhammer'},{n:'Dragonblight',s:'dragonblight'},
+        {n:'Dragonmaw',s:'dragonmaw'},{n:"Drak'Tharon",s:'draktharon'},
+        {n:"Drak'thul",s:'drakthul'},{n:'Draka',s:'draka'},{n:'Drakkari',s:'drakkari'},
+        {n:'Dreadmaul',s:'dreadmaul'},{n:'Drenden',s:'drenden'},{n:'Dunemaul',s:'dunemaul'},
+        {n:'Durotan',s:'durotan'},{n:'Duskwood',s:'duskwood'},{n:'Earthen Ring',s:'earthen-ring'},
+        {n:'Eitrigg',s:'eitrigg'},{n:"Eldre'Thalas",s:'eldrethalas'},{n:'Elune',s:'elune'},
+        {n:'Emerald Dream',s:'emerald-dream'},{n:'Eonar',s:'eonar'},{n:'Eredar',s:'eredar'},
+        {n:'Executus',s:'executus'},{n:'Exodar',s:'exodar'},{n:'Farstriders',s:'farstriders'},
+        {n:'Feathermoon',s:'feathermoon'},{n:'Fenris',s:'fenris'},{n:'Firetree',s:'firetree'},
+        {n:'Fizzcrank',s:'fizzcrank'},{n:'Frostmane',s:'frostmane'},{n:'Frostmourne',s:'frostmourne'},
+        {n:'Frostwolf',s:'frostwolf'},{n:'Galakrond',s:'galakrond'},{n:'Gallywix',s:'gallywix'},
+        {n:'Garona',s:'garona'},{n:'Garrosh',s:'garrosh'},{n:'Ghostlands',s:'ghostlands'},
+        {n:'Gilneas',s:'gilneas'},{n:'Gnomeregan',s:'gnomeregan'},{n:'Goldrinn',s:'goldrinn'},
+        {n:'Greymane',s:'greymane'},{n:"Gul'dan",s:'guldan'},{n:'Gundrak',s:'gundrak'},
+        {n:'Gurubashi',s:'gurubashi'},{n:'Hakkar',s:'hakkar'},{n:'Haomarush',s:'haomarush'},
+        {n:'Hellscream',s:'hellscream'},{n:'Hydraxis',s:'hydraxis'},{n:'Hyjal',s:'hyjal'},
+        {n:'Icecrown',s:'icecrown'},{n:'Illidan',s:'illidan'},{n:'Jaedenar',s:'jaedenar'},
+        {n:"Jubei'Thos",s:'jubeithos'},{n:"Kael'thas",s:'kaelthas'},{n:'Kalecgos',s:'kalecgos'},
+        {n:'Kargath',s:'kargath'},{n:"Kel'Thuzad",s:'kelthuzad'},{n:'Khadgar',s:'khadgar'},
+        {n:'Khaz Modan',s:'khaz-modan'},{n:"Khaz'goroth",s:'khazgoroth'},
+        {n:"Kil'jaeden",s:'kiljaeden'},{n:'Kilrogg',s:'kilrogg'},{n:'Kirin Tor',s:'kirin-tor'},
+        {n:'Korgath',s:'korgath'},{n:'Korialstrasz',s:'korialstrasz'},{n:'Kul Tiras',s:'kul-tiras'},
+        {n:'Laughing Skull',s:'laughing-skull'},{n:'Lethon',s:'lethon'},
+        {n:'Lightbringer',s:'lightbringer'},{n:"Lightning's Blade",s:'lightnings-blade'},
+        {n:'Lightninghoof',s:'lightninghoof'},{n:'Llane',s:'llane'},{n:'Lothar',s:'lothar'},
+        {n:'Madoran',s:'madoran'},{n:'Maelstrom',s:'maelstrom'},{n:'Magtheridon',s:'magtheridon'},
+        {n:'Maiev',s:'maiev'},{n:"Mal'Ganis",s:'malganis'},{n:'Malfurion',s:'malfurion'},
+        {n:'Malorne',s:'malorne'},{n:'Malygos',s:'malygos'},{n:'Mannoroth',s:'mannoroth'},
+        {n:'Medivh',s:'medivh'},{n:'Misha',s:'misha'},{n:"Mok'Nathal",s:'moknathal'},
+        {n:'Moon Guard',s:'moon-guard'},{n:'Moonrunner',s:'moonrunner'},
+        {n:"Mug'thol",s:'mugthol'},{n:'Muradin',s:'muradin'},{n:'Nagrand',s:'nagrand'},
+        {n:'Nathrezim',s:'nathrezim'},{n:'Nazgrel',s:'nazgrel'},{n:'Nazjatar',s:'nazjatar'},
+        {n:'Nemesis',s:'nemesis'},{n:'Nesingwary',s:'nesingwary'},{n:'Nordrassil',s:'nordrassil'},
+        {n:'Norgannon',s:'norgannon'},{n:'Onyxia',s:'onyxia'},{n:'Perenolde',s:'perenolde'},
+        {n:'Proudmoore',s:'proudmoore'},{n:"Quel'Dorei",s:'queldorei'},
+        {n:"Quel'Thalas",s:'quelthalas'},{n:'Ragnaros',s:'ragnaros'},
+        {n:'Ravencrest',s:'ravencrest'},{n:'Ravenholdt',s:'ravenholdt'},{n:'Rexxar',s:'rexxar'},
+        {n:'Rivendare',s:'rivendare'},{n:'Runetotem',s:'runetotem'},{n:'Sargeras',s:'sargeras'},
+        {n:'Saurfang',s:'saurfang'},{n:'Scarlet Crusade',s:'scarlet-crusade'},
+        {n:'Sentinels',s:'sentinels'},{n:'Shadow Council',s:'shadow-council'},
+        {n:'Shadowmoon',s:'shadowmoon'},{n:'Shadowsong',s:'shadowsong'},
+        {n:'Shandris',s:'shandris'},{n:'Shattered Halls',s:'shattered-halls'},
+        {n:'Shattered Hand',s:'shattered-hand'},{n:"Shu'halo",s:'shuhalo'},
+        {n:'Silver Hand',s:'silver-hand'},{n:'Silvermoon',s:'silvermoon'},
+        {n:'Sisters of Elune',s:'sisters-of-elune'},{n:'Skullcrusher',s:'skullcrusher'},
+        {n:'Skywall',s:'skywall'},{n:'Smolderthorn',s:'smolderthorn'},
+        {n:'Spinebreaker',s:'spinebreaker'},{n:'Spirestone',s:'spirestone'},
+        {n:'Staghelm',s:'staghelm'},{n:'Steamwheedle Cartel',s:'steamwheedle-cartel'},
+        {n:'Stonemaul',s:'stonemaul'},{n:'Stormrage',s:'stormrage'},
+        {n:'Stormreaver',s:'stormreaver'},{n:'Stormscale',s:'stormscale'},
+        {n:'Suramar',s:'suramar'},{n:'Tanaris',s:'tanaris'},{n:'Terenas',s:'terenas'},
+        {n:'Terokkar',s:'terokkar'},{n:'The Forgotten Coast',s:'the-forgotten-coast'},
+        {n:'The Scryers',s:'the-scryers'},{n:'The Underbog',s:'the-underbog'},
+        {n:'The Venture Co',s:'the-venture-co'},{n:'Thorium Brotherhood',s:'thorium-brotherhood'},
+        {n:'Thrall',s:'thrall'},{n:'Thunderhorn',s:'thunderhorn'},{n:'Thunderlord',s:'thunderlord'},
+        {n:'Tichondrius',s:'tichondrius'},{n:'Tortheldrin',s:'tortheldrin'},
+        {n:'Trollbane',s:'trollbane'},{n:'Turalyon',s:'turalyon'},
+        {n:'Twisting Nether',s:'twisting-nether'},{n:'Uther',s:'uther'},{n:'Vashj',s:'vashj'},
+        {n:'Velen',s:'velen'},{n:'Whisperwind',s:'whisperwind'},{n:'Wildhammer',s:'wildhammer'},
+        {n:'Windrunner',s:'windrunner'},{n:'Winterhoof',s:'winterhoof'},
+        {n:'Wyrmrest Accord',s:'wyrmrest-accord'},{n:'Ysera',s:'ysera'},{n:'Ysondre',s:'ysondre'},
+        {n:'Zangarmarsh',s:'zangarmarsh'},{n:"Zul'jin",s:'zuljin'},{n:'Zuluhed',s:'zuluhed'},
+      ],
+      eu: [
+        {n:'Aegwynn',s:'aegwynn'},{n:'Aerie Peak',s:'aerie-peak'},{n:'Agamaggan',s:'agamaggan'},
+        {n:'Aggramar',s:'aggramar'},{n:"Al'Akir",s:'alakir'},{n:'Alexstrasza',s:'alexstrasza'},
+        {n:'Alleria',s:'alleria'},{n:'Alonsus',s:'alonsus'},{n:"Aman'Thul",s:'amanthul'},
+        {n:'Anachronos',s:'anachronos'},{n:'Anetheron',s:'anetheron'},{n:'Antonidas',s:'antonidas'},
+        {n:"Anub'arak",s:'anubarak'},{n:'Anvilmar',s:'anvilmar'},{n:'Arathor',s:'arathor'},
+        {n:'Archimonde',s:'archimonde'},{n:'Argent Dawn',s:'argent-dawn'},{n:'Arthas',s:'arthas'},
+        {n:'Arygos',s:'arygos'},{n:'Azjol-Nerub',s:'azjol-nerub'},{n:'Azshara',s:'azshara'},
+        {n:'Azuremyst',s:'azuremyst'},{n:'Baelgun',s:'baelgun'},{n:'Balnazzar',s:'balnazzar'},
+        {n:'Blackhand',s:'blackhand'},{n:'Blackmoore',s:'blackmoore'},{n:'Blackrock',s:'blackrock'},
+        {n:"Blade's Edge",s:'blades-edge'},{n:'Bladefist',s:'bladefist'},
+        {n:'Blood Furnace',s:'blood-furnace'},{n:'Bloodfeather',s:'bloodfeather'},
+        {n:'Boulderfist',s:'boulderfist'},{n:'Bronze Dragonflight',s:'bronze-dragonflight'},
+        {n:'Bronzebeard',s:'bronzebeard'},{n:'Burning Blade',s:'burning-blade'},
+        {n:'Burning Legion',s:'burning-legion'},{n:'Caelestrasz',s:'caelestrasz'},
+        {n:'Celebras',s:'celebras'},{n:'Chamber of Aspects',s:'chamber-of-aspects'},
+        {n:"Cho'gall",s:'chogall'},{n:'Chromaggus',s:'chromaggus'},
+        {n:'Confrérie du Thorium',s:'confrerie-du-thorium'},{n:'Crushridge',s:'crushridge'},
+        {n:'Daggerspine',s:'daggerspine'},{n:'Dalaran',s:'dalaran'},{n:'Dalvengyr',s:'dalvengyr'},
+        {n:'Dark Iron',s:'dark-iron'},{n:'Darkmoon Faire',s:'darkmoon-faire'},
+        {n:'Darksorrow',s:'darksorrow'},{n:'Darkspear',s:'darkspear'},
+        {n:'Deathwing',s:'deathwing'},{n:'Defias Brotherhood',s:'defias-brotherhood'},
+        {n:'Dentarg',s:'dentarg'},{n:'Der abyssische Rat',s:'der-abyssische-rat'},
+        {n:'Destromath',s:'destromath'},{n:'Die ewige Wacht',s:'die-ewige-wacht'},
+        {n:'Die Silberne Hand',s:'die-silberne-hand'},{n:'Doomhammer',s:'doomhammer'},
+        {n:'Draenor',s:'draenor'},{n:'Dragonblight',s:'dragonblight'},{n:'Dragonmaw',s:'dragonmaw'},
+        {n:"Drak'thul",s:'drakthul'},{n:'Dun Morogh',s:'dun-morogh'},{n:'Dunemaul',s:'dunemaul'},
+        {n:'Durotan',s:'durotan'},{n:'Earthen Ring',s:'earthen-ring'},
+        {n:'Emerald Dream',s:'emerald-dream'},{n:'Eonar',s:'eonar'},{n:'Eredar',s:'eredar'},
+        {n:'Executus',s:'executus'},{n:'Exodar',s:'exodar'},
+        {n:'Festung der Stürme',s:'festung-der-sturme'},{n:'Forscherliga',s:'forscherliga'},
+        {n:'Frostmane',s:'frostmane'},{n:'Frostwolf',s:'frostwolf'},
+        {n:'Galakrond',s:'galakrond'},{n:'Garrosh',s:'garrosh'},{n:'Genjuros',s:'genjuros'},
+        {n:'Ghostlands',s:'ghostlands'},{n:'Gilneas',s:'gilneas'},{n:'Goldrinn',s:'goldrinn'},
+        {n:'Gordunni',s:'gordunni'},{n:'Grim Batol',s:'grim-batol'},{n:"Gul'dan",s:'guldan'},
+        {n:'Gurubashi',s:'gurubashi'},{n:'Hakkar',s:'hakkar'},{n:'Hellfire',s:'hellfire'},
+        {n:'Hellscream',s:'hellscream'},{n:'Hyjal',s:'hyjal'},{n:'Icecrown',s:'icecrown'},
+        {n:'Jaedenar',s:'jaedenar'},{n:"Kael'thas",s:'kaelthas'},{n:"Kel'Thuzad",s:'kelthuzad'},
+        {n:'Khadgar',s:'khadgar'},{n:"Kil'jaeden",s:'kiljaeden'},{n:'Kilrogg',s:'kilrogg'},
+        {n:'Kirin Tor',s:'kirin-tor'},{n:'Korgath',s:'korgath'},{n:'Krasus',s:'krasus'},
+        {n:'Kul Tiras',s:'kul-tiras'},{n:'La Croisade écarlate',s:'la-croisade-ecarlate'},
+        {n:'Laughing Skull',s:'laughing-skull'},{n:'Les Clairvoyants',s:'les-clairvoyants'},
+        {n:'Les Sentinelles',s:'les-sentinelles'},{n:'Lightbringer',s:'lightbringer'},
+        {n:"Lightning's Blade",s:'lightnings-blade'},{n:'Lordaeron',s:'lordaeron'},
+        {n:'Los Errantes',s:'los-errantes'},{n:'Magtheridon',s:'magtheridon'},
+        {n:'Maiev',s:'maiev'},{n:"Mal'Ganis",s:'malganis'},{n:'Malfurion',s:'malfurion'},
+        {n:'Malorne',s:'malorne'},{n:'Malygos',s:'malygos'},{n:'Mannoroth',s:'mannoroth'},
+        {n:'Marécage de Zangar',s:'marecage-de-zangar'},{n:'Medivh',s:'medivh'},
+        {n:'Minahonda',s:'minahonda'},{n:"Mug'thol",s:'mugthol'},{n:'Muradin',s:'muradin'},
+        {n:'Nathrezim',s:'nathrezim'},{n:'Nefarian',s:'nefarian'},{n:'Nemesis',s:'nemesis'},
+        {n:'Nethersturm',s:'nethersturm'},{n:'Nordrassil',s:'nordrassil'},{n:'Norgannon',s:'norgannon'},
+        {n:'Outland',s:'outland'},{n:'Perenolde',s:'perenolde'},{n:'Proudmoore',s:'proudmoore'},
+        {n:'Ragnaros',s:'ragnaros'},{n:'Ravencrest',s:'ravencrest'},{n:'Ravenholdt',s:'ravenholdt'},
+        {n:'Razuvious',s:'razuvious'},{n:'Rexxar',s:'rexxar'},{n:'Runetotem',s:'runetotem'},
+        {n:'Sanguino',s:'sanguino'},{n:'Sargeras',s:'sargeras'},{n:'Saurfang',s:'saurfang'},
+        {n:'Shadowmoon',s:'shadowmoon'},{n:'Shadowsong',s:'shadowsong'},
+        {n:'Shattered Hand',s:'shattered-hand'},{n:'Silvermoon',s:'silvermoon'},
+        {n:'Skullcrusher',s:'skullcrusher'},{n:'Skywall',s:'skywall'},
+        {n:'Spinebreaker',s:'spinebreaker'},{n:'Stormrage',s:'stormrage'},
+        {n:'Stormreaver',s:'stormreaver'},{n:'Stormscale',s:'stormscale'},
+        {n:'Sunstrider',s:'sunstrider'},{n:'Sylvanas',s:'sylvanas'},{n:'Talnivarr',s:'talnivarr'},
+        {n:'Tarren Mill',s:'tarren-mill'},{n:'Terenas',s:'terenas'},
+        {n:'The Maelstrom',s:'the-maelstrom'},{n:"The Sha'tar",s:'the-shatar'},
+        {n:'The Venture Co',s:'the-venture-co'},{n:'Theradras',s:'theradras'},
+        {n:'Thrall',s:'thrall'},{n:'Thunderhorn',s:'thunderhorn'},{n:'Tichondrius',s:'tichondrius'},
+        {n:'Tirion',s:'tirion'},{n:'Tortheldrin',s:'tortheldrin'},{n:'Trollbane',s:'trollbane'},
+        {n:'Turalyon',s:'turalyon'},{n:'Twisting Nether',s:'twisting-nether'},
+        {n:'Tyrande',s:'tyrande'},{n:'Uldaman',s:'uldaman'},{n:'Vashj',s:'vashj'},
+        {n:"Vol'jin",s:'voljin'},{n:'Wildhammer',s:'wildhammer'},{n:'Wrathbringer',s:'wrathbringer'},
+        {n:'Ysera',s:'ysera'},{n:'Ysondre',s:'ysondre'},{n:'Zenedar',s:'zenedar'},
+        {n:"Zul'jin",s:'zuljin'},
+      ],
+      kr: [
+        {n:'아즈샤라 (Azshara)',s:'azshara'},{n:'굴단 (Guldan)',s:'guldan'},
+        {n:'하이잘 (Hyjal)',s:'hyjal'},{n:"줄진 (Zul'jin)",s:'zuljin'},
+        {n:'말퓨리온 (Malfurion)',s:'malfurion'},{n:'헬스크림 (Hellscream)',s:'hellscream'},
+        {n:'윈드러너 (Windrunner)',s:'windrunner'},{n:'렉사르 (Rexxar)',s:'rexxar'},
+        {n:'세나리우스 (Cenarius)',s:'cenarius'},{n:'노르가논 (Norgannon)',s:'norgannon'},
+      ],
+      tw: [
+        {n:'世界之樹 (World Tree)',s:'world-tree'},{n:'尖石 (Chiseled Rock)',s:'chiseled-rock'},
+        {n:'冰霜之刺 (Frostmane)',s:'frostmane'},{n:'巨龍之喉 (Dragonmaw)',s:'dragonmaw'},
+        {n:'亞雷戈斯 (Arygos)',s:'arygos'},{n:'血之谷 (Bleeding Hollow)',s:'bleeding-hollow'},
+        {n:'水曜日 (Hydraxis)',s:'hydraxis'},{n:'雲蛟衛 (Spirestone)',s:'spirestone'},
+      ],
+    };
+
+    const serverInput    = document.getElementById('server-input');
+    const serverDropdown = document.getElementById('server-dropdown');
+    let sdActiveIdx = -1;
+
+    function sdFilter(query) {
+      const list = SERVERS[document.querySelector('select[name="region"]').value] ?? [];
+      if (!query) return list.slice(0, 25);
+      const q = query.toLowerCase();
+      return list.filter(s => s.n.toLowerCase().includes(q) || s.s.includes(q)).slice(0, 25);
+    }
+
+    function sdRender(items) {
+      serverDropdown.innerHTML = '';
+      sdActiveIdx = -1;
+      if (!items.length) { serverDropdown.classList.remove('open'); return; }
+      items.forEach((s, i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${s.n}</span><span class="sd-slug">${s.s}</span>`;
+        li.dataset.slug = s.s;
+        li.addEventListener('mousedown', e => { e.preventDefault(); sdSelect(s); });
+        serverDropdown.appendChild(li);
+      });
+      serverDropdown.classList.add('open');
+    }
+
+    function sdSelect(s) {
+      serverInput.value = s.s;
+      serverDropdown.classList.remove('open');
+    }
+
+    serverInput.addEventListener('input',  () => sdRender(sdFilter(serverInput.value)));
+    serverInput.addEventListener('focus',  () => sdRender(sdFilter(serverInput.value)));
+    serverInput.addEventListener('blur',   () => setTimeout(() => serverDropdown.classList.remove('open'), 150));
+    serverInput.addEventListener('keydown', e => {
+      const items = serverDropdown.querySelectorAll('li');
+      if (!serverDropdown.classList.contains('open') || !items.length) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        sdActiveIdx = Math.min(sdActiveIdx + 1, items.length - 1);
+        items.forEach((li, i) => li.classList.toggle('sd-active', i === sdActiveIdx));
+        items[sdActiveIdx]?.scrollIntoView({block:'nearest'});
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        sdActiveIdx = Math.max(sdActiveIdx - 1, -1);
+        items.forEach((li, i) => li.classList.toggle('sd-active', i === sdActiveIdx));
+        items[sdActiveIdx]?.scrollIntoView({block:'nearest'});
+      } else if (e.key === 'Enter' && sdActiveIdx >= 0) {
+        e.preventDefault();
+        sdSelect({s: items[sdActiveIdx].dataset.slug, n: items[sdActiveIdx].querySelector('span').textContent});
+        // Let the form submit naturally on next Enter
+      } else if (e.key === 'Escape') {
+        serverDropdown.classList.remove('open');
+      }
+    });
+
+    document.querySelector('select[name="region"]').addEventListener('change', () => {
+      serverInput.value = '';
+      serverDropdown.classList.remove('open');
+    });
+
+    // ---------------------------------------------------------------------------
+    // Main app
+    // ---------------------------------------------------------------------------
     const form      = document.getElementById('lookup-form');
     const resultEl  = document.getElementById('result');
     const spinner   = document.getElementById('spinner');
