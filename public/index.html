@@ -70,6 +70,7 @@
       border: 1px solid #30363d;
       border-radius: 6px;
       max-height: 220px;
+      overflow-x: hidden;
       overflow-y: auto;
       z-index: 100;
       list-style: none;
@@ -88,7 +89,7 @@
     }
     .server-dropdown li:hover,
     .server-dropdown li.sd-active { background: #21262d; }
-    .server-dropdown .sd-slug { color: #8b949e; font-family: monospace; font-size: 0.78rem; flex-shrink: 0; }
+    .server-dropdown .sd-slug { color: #8b949e; font-family: monospace; font-size: 0.78rem; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; }
 
     button {
       background: #f0b429;
