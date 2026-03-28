@@ -77,8 +77,21 @@ dpsRankings:              zoneRankings(zoneID: $zoneID, metric: dps)
 - Interrupt table nesting: `table.data.entries[0].entries` (double nested — outer is per-fight, inner is per-spell)
 - Table is keyed by spell interrupted, not player — must aggregate per player across all spells
 - If a dungeon has no report code (private/expired log), a stub is returned with the character in `actorNames` so the run still counts in the denominator
+- If a report code exists but `getInterruptsForFight` returns null (report private/still processing), that run also falls back to a stub — **do not use `.filter(Boolean)` to drop null results**, or the denominator will be too low
 - Players with 0 interrupts don't appear in the interrupt table — `actorNames` (all group members from `masterData`) is used to detect presence
 - Rank check must be `idx >= 0 && idx <= N` — `idx = -1` (not found) must not be treated as a top rank
+
+## Shareable links
+
+The frontend supports pre-filled lookups via query params:
+
+```
+https://scrub-sniffer.vercel.app/?name=dookiez&server=alleria&region=us
+```
+
+- On page load, if `name` + `server` params are present the form auto-fills and the lookup fires immediately
+- After every sniff the URL updates to reflect the current character (via `history.replaceState`)
+- The verdict card has a "Copy link" button that copies the current URL to clipboard
 
 ## Running locally
 

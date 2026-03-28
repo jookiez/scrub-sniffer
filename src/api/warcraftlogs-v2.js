@@ -144,8 +144,15 @@ export async function getInterruptsFromBestRuns(name, serverSlug, serverRegion, 
     }
   }
 
-  const fetched = await Promise.all(realRuns.map(run => getInterruptsForFight(run)));
-  return [...fetched.filter(Boolean), ...stubs];
+  const fetched = await Promise.all(
+    realRuns.map(async run => {
+      const result = await getInterruptsForFight(run);
+      // Report code existed but data came back empty (private/processing) — stub it so
+      // this run still counts in the interrupt denominator.
+      return result ?? { dungeon: run.dungeon, players: [], actorNames: [nameLower] };
+    })
+  );
+  return [...fetched, ...stubs];
 }
 
 async function getInterruptsForFight({ code, fightID, dungeon }) {

@@ -170,6 +170,21 @@
     .bar-bg       { background: #21262d; border-radius: 4px; height: 8px; overflow: hidden; }
     .bar-fill     { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
 
+    .copy-link-btn {
+      background: none;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #8b949e;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .copy-link-btn:hover    { border-color: #f0b429; color: #f0b429; }
+    .copy-link-btn:disabled { border-color: #3fb950; color: #3fb950; cursor: default; }
+
     .error-msg {
       color: #f85149;
       background: #3a1a1a;
@@ -256,6 +271,7 @@
             <span class="verdict-badge ${isPass ? 'badge-pass' : 'badge-scrub'}">${verdict}</span>
             <span class="char-name">${character.name}-${character.server}</span>
             <span class="role-tag">${character.roleLabel}${character.specName ? ' · ' + character.specName : ''}</span>
+            <button class="copy-link-btn" id="copy-link-btn" style="margin-left:auto">Copy link</button>
           </div>
           <ul class="reasons">${reasonsHtml}</ul>
         </div>
@@ -285,18 +301,26 @@
       `;
     }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name   = form.name.value.trim();
-      const server = form.server.value.trim();
-      const region = form.region.value;
+    resultEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('#copy-link-btn');
+      if (!btn) return;
+      navigator.clipboard.writeText(location.href).then(() => {
+        btn.textContent = 'Copied!';
+        btn.disabled = true;
+        setTimeout(() => { btn.textContent = 'Copy link'; btn.disabled = false; }, 2000);
+      });
+    });
 
+    async function runLookup(name, server, region) {
       resultEl.innerHTML = '';
       spinner.style.display = 'block';
       submitBtn.disabled = true;
 
+      const params = new URLSearchParams({ name, server, region });
+      history.replaceState(null, '', '?' + params.toString());
+
       try {
-        const res  = await fetch(`/api/lookup?name=${encodeURIComponent(name)}&server=${encodeURIComponent(server)}&region=${region}`);
+        const res  = await fetch(`/api/lookup?${params}`);
         const data = await res.json();
 
         if (!res.ok) {
@@ -310,7 +334,21 @@
         spinner.style.display = 'none';
         submitBtn.disabled = false;
       }
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      runLookup(form.name.value.trim(), form.server.value.trim(), form.region.value);
     });
+
+    // Pre-fill and auto-run from URL params (shareable links)
+    const qp = new URLSearchParams(location.search);
+    if (qp.get('name') && qp.get('server')) {
+      form.name.value   = qp.get('name');
+      form.server.value = qp.get('server');
+      if (qp.get('region')) form.region.value = qp.get('region');
+      runLookup(form.name.value, form.server.value, form.region.value);
+    }
   </script>
 
 </body>
