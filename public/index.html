@@ -458,7 +458,7 @@
       if (!items.length) { serverDropdown.classList.remove('open'); return; }
       items.forEach((s, i) => {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${s.n}</span><span class="sd-slug">${s.s}</span>`;
+        li.innerHTML = `<span>${s.n}</span>`;
         li.dataset.slug = s.s;
         li.addEventListener('mousedown', e => { e.preventDefault(); sdSelect(s); });
         serverDropdown.appendChild(li);
