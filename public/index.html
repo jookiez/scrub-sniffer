@@ -519,7 +519,7 @@
 
     function reasonClass(text) {
       if (text.startsWith('⚠')) return 'warn';
-      if (/too low|no |not |borderline and not|struggles/i.test(text)) return 'fail';
+      if (/too low|no |not |borderline and not|struggles|only \d+\/\d+/i.test(text)) return 'fail';
       return 'ok';
     }
 
