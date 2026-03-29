@@ -223,12 +223,12 @@ export function getVerdict(role, raid, mplus, interrupts) {
         reasons.push(`M+ ${metricLabel}: ${pct}% avg — too low (need ${cfg.mplusThreshold}%+)`);
       }
 
-      // Tanks must be top-2 interruptor in every run
+      // Tanks must be top-2 interruptor in 80%+ of runs
       if (totalRuns > 0 && !topTankInterruptor) {
         verdict = SCRUB;
         reasons.push(`Interrupts: top-2 in only ${rank1or2Count}/${totalRuns} runs — tanks need 80%+ of runs`);
       } else if (totalRuns > 0) {
-        reasons.push(`Interrupts OK: top-2 in all ${totalRuns} runs`);
+        reasons.push(`Interrupts OK: top-2 in ${rank1or2Count}/${totalRuns} runs`);
       }
     }
   }
