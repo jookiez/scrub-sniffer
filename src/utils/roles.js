@@ -49,8 +49,8 @@ export const ROLE_CONFIG = {
     label:          'DPS',
     mplusMetric:    'points_and_damage',
     raidMetric:     'dps',
-    mplusThreshold: 80,
-    mplusIntBonus:  70,
+    mplusThreshold: 75,
+    mplusIntBonus:  65,
     raidThreshold:  70,
     interruptBonus: true,
     interruptWarn:  false,
@@ -59,8 +59,8 @@ export const ROLE_CONFIG = {
     label:          'Healer',
     mplusMetric:    'points_and_healing',
     raidMetric:     'hps',
-    mplusThreshold: 80,
-    mplusIntBonus:  80, // no interrupt bonus — healers often lack interrupt abilities
+    mplusThreshold: 70,
+    mplusIntBonus:  70, // no interrupt bonus — healers often lack interrupt abilities
     raidThreshold:  70,
     interruptBonus: false,
     interruptWarn:  false,
@@ -69,9 +69,9 @@ export const ROLE_CONFIG = {
     label:          'Tank',
     mplusMetric:    'points_and_damage',
     raidMetric:     'dps',
-    mplusThreshold: 70,      // lower bar — tank dps parses are harder to top
-    mplusIntBonus:  70,
-    raidThreshold:  70,
+    mplusThreshold: 50,
+    mplusIntBonus:  50,
+    raidThreshold:  50,
     interruptBonus: false,
     interruptWarn:  true,    // tanks are EXPECTED to interrupt; flag if they don't
   },

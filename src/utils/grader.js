@@ -143,8 +143,8 @@ export function summarizeInterrupts(interruptRuns, characterName) {
   }
 
   return {
-    topInterruptor:     runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.5,
-    topTankInterruptor: runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.5,
+    topInterruptor:     runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.8,
+    topTankInterruptor: runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.8,
     rank1or2Count,
     rank1to3Count,
     totalRuns: runsWithCharacter, // denominator = only runs the character actually played
@@ -223,13 +223,12 @@ export function getVerdict(role, raid, mplus, interrupts) {
         reasons.push(`M+ ${metricLabel}: ${pct}% avg — too low (need ${cfg.mplusThreshold}%+)`);
       }
 
-      // Interrupts are expected for tanks — warn but don't auto-fail
+      // Tanks must be top-2 interruptor in every run
       if (totalRuns > 0 && !topTankInterruptor) {
-        reasons.push(
-          `⚠ Interrupt warning: top-2 in only ${rank1or2Count}/${totalRuns} runs — tanks should own interrupts`
-        );
+        verdict = SCRUB;
+        reasons.push(`Interrupts: top-2 in only ${rank1or2Count}/${totalRuns} runs — tanks need 80%+ of runs`);
       } else if (totalRuns > 0) {
-        reasons.push(`Interrupts OK: top-2 in ${rank1or2Count}/${totalRuns} runs`);
+        reasons.push(`Interrupts OK: top-2 in all ${totalRuns} runs`);
       }
     }
   }
