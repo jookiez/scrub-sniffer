@@ -144,15 +144,36 @@ export async function getInterruptsFromBestRuns(name, serverSlug, serverRegion, 
     }
   }
 
-  const fetched = await Promise.all(
-    realRuns.map(async run => {
+  const fetched = await fetchInterruptDetails(realRuns, nameLower);
+
+  // If any runs came back stale (character missing from masterData), retry just those.
+  // The first request primes the WarcraftLogs cache; the second gets complete data.
+  const staleRuns  = [];
+  const goodResults = [];
+  for (let i = 0; i < fetched.length; i++) {
+    if (fetched[i] === null) staleRuns.push(realRuns[i]);
+    else goodResults.push(fetched[i]);
+  }
+
+  if (staleRuns.length > 0) {
+    const retried = await fetchInterruptDetails(staleRuns, nameLower);
+    for (const r of retried) {
+      if (r !== null) goodResults.push(r);
+    }
+  }
+
+  return [...goodResults, ...stubs];
+}
+
+async function fetchInterruptDetails(runs, nameLower) {
+  return Promise.all(
+    runs.map(async run => {
       const result = await getInterruptsForFight(run);
-      // Report code existed but data came back empty (private/processing) — stub it so
-      // this run still counts in the interrupt denominator.
-      return result ?? { dungeon: run.dungeon, players: [], actorNames: [nameLower] };
+      if (!result) return { dungeon: run.dungeon, players: [], actorNames: [nameLower] };
+      if (!result.actorNames.includes(nameLower)) return null;
+      return result;
     })
   );
-  return [...fetched, ...stubs];
 }
 
 async function getInterruptsForFight({ code, fightID, dungeon }) {
