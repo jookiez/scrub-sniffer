@@ -524,7 +524,7 @@
     }
 
     function renderResult(data) {
-      const { character, verdict, reasons, mplus, raid, interrupts } = data;
+      const { character, verdict, reasons, mplus, raid, interrupts, topDps } = data;
       const { role } = character;
       const isPass  = verdict === 'PASS';
       const metricLabel = 'Score'; // M+ always uses playerscore (key level × time), not role-specific metrics
@@ -546,6 +546,14 @@
       const intVal   = interrupts.totalRuns > 0 ? `${intCount}/${interrupts.totalRuns} runs` : 'No data';
       const intLine  = `<div class="stat-row"><span>${intLabel}</span><span class="stat-val">${intVal}</span></div>`;
 
+      const topDpsLine = (role === 'dps' && topDps)
+        ? (() => {
+            const val = topDps.totalRuns > 0 ? `${topDps.rank1Count}/${topDps.totalRuns} runs` : 'No data';
+            const color = topDps.topDps ? '#3fb950' : '#8b949e';
+            return `<div class="stat-row"><span>Top DPS in key</span><span class="stat-val" style="color:${color}">${val}</span></div>`;
+          })()
+        : '';
+
       resultEl.innerHTML = `
         <div class="card ${isPass ? 'verdict-pass' : 'verdict-scrub'}">
           <div class="verdict-header">
@@ -563,6 +571,7 @@
             <div class="stat-row"><span>Avg parse</span><span class="stat-val" style="color:${parseColor(mplus.avgPercentile)}">${mplus.avgPercentile}%</span></div>
             <div class="stat-row"><span>Runs sampled</span><span class="stat-val">${mplus.runs.length}</span></div>
             ${intLine}
+            ${topDpsLine}
             <div class="parse-bar-wrap">${runsHtml}</div>
             ${(mplus.missingDungeons ?? []).length > 0
               ? `<p style="color:#f0b429;font-size:.82rem;margin-top:8px">⚠ No data for: ${mplus.missingDungeons.join(', ')}</p>`

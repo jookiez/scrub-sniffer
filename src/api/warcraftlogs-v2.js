@@ -179,11 +179,12 @@ async function fetchInterruptDetails(runs, nameLower) {
 
 async function getInterruptsForFight({ code, fightID, dungeon }) {
   const data = await gql(`
-    query FightInterrupts($code: String!, $fightIDs: [Int]) {
+    query FightDetails($code: String!, $fightIDs: [Int]) {
       reportData {
         report(code: $code) {
           masterData { actors(type: "Player") { id name } }
-          table(dataType: Interrupts, fightIDs: $fightIDs)
+          interrupts: table(dataType: Interrupts, fightIDs: $fightIDs)
+          damageDone: table(dataType: DamageDone, fightIDs: $fightIDs)
         }
       }
     }
@@ -193,13 +194,11 @@ async function getInterruptsForFight({ code, fightID, dungeon }) {
   if (!report) return null;
 
   const actors = report.masterData?.actors ?? [];
-  // The table returns [{ entries: [...spells] }] — one wrapper object per fight
-  const spells = report.table?.data?.entries?.[0]?.entries ?? [];
-  const totals = {};
+  const playerIDs = new Set(actors.map(a => a.id));
 
   // Interrupts table is keyed by spell-interrupted. Aggregate per player across all spells.
-  // Filter to only actors of type Player (actors list already scoped to players).
-  const playerIDs = new Set(actors.map(a => a.id));
+  const spells = report.interrupts?.data?.entries?.[0]?.entries ?? [];
+  const totals = {};
   for (const spell of spells) {
     for (const detail of spell.details ?? []) {
       if (!playerIDs.has(detail.id)) continue;
@@ -215,10 +214,20 @@ async function getInterruptsForFight({ code, fightID, dungeon }) {
     }))
     .sort((a, b) => b.interrupts - a.interrupts);
 
+  // DamageDone table: flat list of players sorted by total damage.
+  // Filter to player actors only (excludes pets/guardians).
+  const damageEntries = report.damageDone?.data?.entries ?? [];
+  const dpsPlayers = damageEntries
+    .filter(e => playerIDs.has(e.id))
+    .sort((a, b) => b.total - a.total)
+    .map(e => ({
+      id:    e.id,
+      name:  actors.find(a => a.id === e.id)?.name ?? e.name ?? 'Unknown',
+      total: e.total,
+    }));
+
   // actorNames includes everyone in the group, even players with 0 interrupts.
-  // summarizeInterrupts uses this to count runs the character participated in
-  // regardless of whether they appear in the interrupt table.
   const actorNames = actors.map(a => a.name.toLowerCase());
 
-  return { code, fightID, dungeon, players, actorNames };
+  return { code, fightID, dungeon, players, actorNames, dpsPlayers };
 }

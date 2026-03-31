@@ -1,5 +1,5 @@
 import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBestRuns } from '../src/api/warcraftlogs-v2.js';
-import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, getVerdict } from '../src/utils/grader.js';
+import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, summarizeTopDps, getVerdict } from '../src/utils/grader.js';
 import { detectRole, extractSpecFromRankings, ROLE_CONFIG } from '../src/utils/roles.js';
 
 export default async function handler(req, res) {
@@ -33,9 +33,10 @@ export default async function handler(req, res) {
       getInterruptsFromBestRuns(name, server, region, encounters),
     ]);
 
-    const raid = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
+    const raid      = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
     const interrupts = summarizeInterrupts(interruptRuns, name);
-    const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts);
+    const topDpsData = role === 'dps' ? summarizeTopDps(interruptRuns, name) : null;
+    const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts, topDpsData);
 
     res.status(200).json({
       character: { name, server, region, specName, role, roleLabel: cfg.label },
@@ -44,6 +45,7 @@ export default async function handler(req, res) {
       mplus,
       raid,
       interrupts,
+      topDps: topDpsData,
     });
   } catch (err) {
     console.error(err);

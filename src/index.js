@@ -5,7 +5,7 @@
  */
 
 import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBestRuns } from './api/warcraftlogs-v2.js';
-import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, getVerdict } from './utils/grader.js';
+import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, summarizeTopDps, getVerdict } from './utils/grader.js';
 import { detectRole, extractSpecFromRankings, ROLE_CONFIG } from './utils/roles.js';
 
 const [,, characterName, server, region = 'us'] = process.argv;
@@ -45,10 +45,11 @@ async function sniff(name, serverSlug, reg) {
     getInterruptsFromBestRuns(name, serverSlug, reg, encounters),
   ]);
 
-  const raid = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
+  const raid       = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
   const interrupts = summarizeInterrupts(interruptRuns, name);
+  const topDpsData = role === 'dps' ? summarizeTopDps(interruptRuns, name) : null;
 
-  const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts);
+  const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts, topDpsData);
 
   const metricLabel = 'Score'; // M+ always uses playerscore (key level × time), not role-specific metrics
 
@@ -76,6 +77,10 @@ async function sniff(name, serverSlug, reg) {
   if (interrupts.totalRuns > 0) {
     if (role === 'dps') {
       console.log(`  Top-2 in ${interrupts.rank1or2Count}/${interrupts.totalRuns} runs — ${interrupts.topInterruptor ? 'interrupt bonus applies' : 'no interrupt bonus'}`);
+      if (topDpsData) {
+        const dpsNote = topDpsData.topDps ? 'auto-pass' : 'not enough';
+        console.log(`  Top DPS in ${topDpsData.rank1Count}/${topDpsData.totalRuns} runs — ${dpsNote}`);
+      }
     } else if (role === 'tank') {
       console.log(`  Top-3 in ${interrupts.rank1to3Count}/${interrupts.totalRuns} runs — ${interrupts.topTankInterruptor ? 'interrupts good' : 'interrupts lacking'}`);
     } else {

@@ -152,13 +152,46 @@ export function summarizeInterrupts(interruptRuns, characterName) {
 }
 
 // ---------------------------------------------------------------------------
+// Top DPS (DPS only)
+// ---------------------------------------------------------------------------
+
+export function summarizeTopDps(runs, characterName) {
+  if (!runs || runs.length === 0) {
+    return { topDps: false, rank1Count: 0, totalRuns: 0 };
+  }
+
+  const nameLower = characterName.toLowerCase();
+  let rank1Count = 0;
+  let runsWithCharacter = 0;
+
+  for (const run of runs) {
+    const dpsPlayers = run.dpsPlayers ?? [];
+    const actorNames = run.actorNames ?? [];
+
+    const wasPresent = dpsPlayers.some(p => p.name.toLowerCase() === nameLower)
+                    || actorNames.includes(nameLower);
+    if (!wasPresent) continue;
+
+    runsWithCharacter++;
+    const idx = dpsPlayers.findIndex(p => p.name.toLowerCase() === nameLower);
+    if (idx === 0) rank1Count++;
+  }
+
+  return {
+    topDps:    runsWithCharacter > 0 && rank1Count / runsWithCharacter >= 0.8,
+    rank1Count,
+    totalRuns: runsWithCharacter,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Final verdict (role-aware)
 // ---------------------------------------------------------------------------
 
 const PASS  = 'PASS';
 const SCRUB = 'SCRUB';
 
-export function getVerdict(role, raid, mplus, interrupts) {
+export function getVerdict(role, raid, mplus, interrupts, topDpsData = null) {
   const cfg     = ROLE_CONFIG[role] ?? ROLE_CONFIG.dps;
   const reasons = [];
   let verdict   = PASS;
@@ -186,8 +219,16 @@ export function getVerdict(role, raid, mplus, interrupts) {
 
     if (role === 'dps') {
       const { topInterruptor, rank1or2Count, totalRuns } = interrupts;
+      const topDps = topDpsData?.topDps ?? false;
+      const dpsRank1Count = topDpsData?.rank1Count ?? 0;
+      const dpsTotalRuns  = topDpsData?.totalRuns ?? 0;
 
-      if (pct >= cfg.mplusThreshold) {
+      if (topDps) {
+        // Top damage dealer in 80%+ of runs — auto-pass regardless of parse
+        reasons.push(
+          `Top DPS in ${dpsRank1Count}/${dpsTotalRuns} runs — carrying the key`
+        );
+      } else if (pct >= cfg.mplusThreshold) {
         reasons.push(`M+ ${metricLabel}: ${pct}% avg — strong performer`);
       } else if (pct >= cfg.mplusIntBonus && topInterruptor) {
         reasons.push(
