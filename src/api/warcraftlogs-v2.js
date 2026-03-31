@@ -134,7 +134,8 @@ export async function getInterruptsFromBestRuns(name, serverSlug, serverRegion, 
   const stubs     = [];
 
   for (const enc of encounters) {
-    const best = char[`enc_${enc.id}`]?.ranks?.[0];
+    const ranks = char[`enc_${enc.id}`]?.ranks ?? [];
+    const best = ranks.find(r => r.report?.code);
     if (best?.report?.code) {
       realRuns.push({ dungeon: enc.name, code: best.report.code, fightID: best.report.fightID });
     } else {
