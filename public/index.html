@@ -524,7 +524,7 @@
     }
 
     function renderResult(data) {
-      const { character, verdict, reasons, mplus, raid, interrupts, topDps } = data;
+      const { character, verdict, reasons, mplus, healerDmg, raid, interrupts, topDps } = data;
       const { role } = character;
       const isPass  = verdict === 'PASS';
       const metricLabel = 'Score'; // M+ always uses playerscore (key level × time), not role-specific metrics
@@ -579,6 +579,16 @@
             }
           ` : '<p style="color:#8b949e;font-size:.9rem">No M+ logs found.</p>'}
         </div>
+
+        ${healerDmg ? `
+        <div class="card">
+          <div class="section-title">Mythic+ Damage</div>
+          ${healerDmg.hasLogs ? `
+            <div class="stat-row"><span>Avg parse</span><span class="stat-val" style="color:${parseColor(healerDmg.avgPercentile)}">${healerDmg.avgPercentile}%</span></div>
+            <div class="stat-row"><span>Runs sampled</span><span class="stat-val">${healerDmg.runs.length}</span></div>
+          ` : '<p style="color:#8b949e;font-size:.9rem">No M+ damage data found.</p>'}
+        </div>
+        ` : ''}
 
         <div class="card">
           <div class="section-title">Raid</div>

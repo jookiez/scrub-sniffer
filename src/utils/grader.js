@@ -191,7 +191,7 @@ export function summarizeTopDps(runs, characterName) {
 const PASS  = 'PASS';
 const SCRUB = 'SCRUB';
 
-export function getVerdict(role, raid, mplus, interrupts, topDpsData = null) {
+export function getVerdict(role, raid, mplus, interrupts, { topDpsData = null, healerDmg = null } = {}) {
   const cfg     = ROLE_CONFIG[role] ?? ROLE_CONFIG.dps;
   const reasons = [];
   let verdict   = PASS;
@@ -252,6 +252,19 @@ export function getVerdict(role, raid, mplus, interrupts, topDpsData = null) {
       } else {
         verdict = SCRUB;
         reasons.push(`M+ ${metricLabel}: ${pct}% avg — too low (need ${cfg.mplusThreshold}%+)`);
+      }
+
+      // Healers must also do decent damage
+      if (healerDmg && healerDmg.hasLogs) {
+        const dmgPct = healerDmg.avgPercentile;
+        if (dmgPct >= cfg.healerDmgThreshold) {
+          reasons.push(`M+ damage: ${dmgPct}% avg — good damage for a healer`);
+        } else {
+          verdict = SCRUB;
+          reasons.push(`M+ damage: ${dmgPct}% avg — too low (need ${cfg.healerDmgThreshold}%+)`);
+        }
+      } else if (healerDmg) {
+        reasons.push('⚠ No M+ damage data available');
       }
 
     } else if (role === 'tank') {

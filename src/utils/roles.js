@@ -62,6 +62,7 @@ export const ROLE_CONFIG = {
     mplusThreshold: 70,
     mplusIntBonus:  70, // no interrupt bonus — healers often lack interrupt abilities
     raidThreshold:  70,
+    healerDmgThreshold: 50, // healers must also do decent damage
     interruptBonus: false,
     interruptWarn:  false,
   },

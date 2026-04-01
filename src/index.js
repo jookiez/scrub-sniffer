@@ -37,6 +37,7 @@ async function sniff(name, serverSlug, reg) {
   const mplusRankings = role === 'healer' ? charMplus.pointsAndHealingRankings
                       :                    charMplus.pointsAndDamageRankings;
   const mplus         = summarizeMythicPlus(mplusRankings);
+  const healerDmg     = role === 'healer' ? summarizeMythicPlus(charMplus.pointsAndDamageRankings) : null;
   const encounters = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
 
   // Step 2: fetch raid + interrupts in parallel using role-correct metric
@@ -49,7 +50,7 @@ async function sniff(name, serverSlug, reg) {
   const interrupts = summarizeInterrupts(interruptRuns, name);
   const topDpsData = role === 'dps' ? summarizeTopDps(interruptRuns, name) : null;
 
-  const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts, topDpsData);
+  const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts, { topDpsData, healerDmg });
 
   const metricLabel = 'Score'; // M+ always uses playerscore (key level × time), not role-specific metrics
 
@@ -70,6 +71,17 @@ async function sniff(name, serverSlug, reg) {
     }
   } else {
     console.log('  No M+ logs found.');
+  }
+
+  // Healer damage breakdown
+  if (healerDmg) {
+    console.log(`\n  [ Mythic+ Damage ]`);
+    if (healerDmg.hasLogs) {
+      console.log(`  Avg Parse    : ${healerDmg.avgPercentile}%`);
+      console.log(`  Runs Sampled : ${healerDmg.runs.length}`);
+    } else {
+      console.log('  No M+ damage data found.');
+    }
   }
 
   // Interrupt breakdown

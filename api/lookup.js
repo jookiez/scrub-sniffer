@@ -25,6 +25,7 @@ export default async function handler(req, res) {
     const mplusRankings = role === 'healer' ? charMplus.pointsAndHealingRankings
                         :                    charMplus.pointsAndDamageRankings;
     const mplus         = summarizeMythicPlus(mplusRankings);
+    const healerDmg     = role === 'healer' ? summarizeMythicPlus(charMplus.pointsAndDamageRankings) : null;
     const encounters = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
 
     // Step 2: fetch raid + interrupts in parallel with role-correct metric
@@ -36,13 +37,14 @@ export default async function handler(req, res) {
     const raid      = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
     const interrupts = summarizeInterrupts(interruptRuns, name);
     const topDpsData = role === 'dps' ? summarizeTopDps(interruptRuns, name) : null;
-    const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts, topDpsData);
+    const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts, { topDpsData, healerDmg });
 
     res.status(200).json({
       character: { name, server, region, specName, role, roleLabel: cfg.label },
       verdict,
       reasons,
       mplus,
+      healerDmg,
       raid,
       interrupts,
       topDps: topDpsData,

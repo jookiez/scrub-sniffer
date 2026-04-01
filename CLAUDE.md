@@ -42,7 +42,9 @@ Role is auto-detected from the spec name in `allStars[0].spec` on M+ rankings.
 | Role   | M+ metric              | Raid metric | M+ threshold | M+ int-bonus threshold             | Raid threshold |
 |--------|------------------------|-------------|--------------|------------------------------------|----------------|
 | DPS    | `points_and_damage`    | `dps`       | 80%          | 70% (needs top-2 int ≥50% of runs) | 70%            |
-| Healer | `points_and_healing`   | `hps`       | 80%          | no bonus                           | 70%            |
+| Healer | `points_and_healing`   | `hps`       | 70%          | no bonus                           | 70%            |
+
+Healers also require M+ damage avg (`points_and_damage`) >= 50%.
 | Tank   | `points_and_damage`    | `dps`       | 70%          | n/a                                | 70%            |
 
 Notes:
