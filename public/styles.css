@@ -191,6 +191,8 @@ button:disabled{ background: #4a3f1a; color: #6e5a1a; cursor: not-allowed; }
 }
 
 .dungeon-name { color: #8b949e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dungeon-link { color: #8b949e; text-decoration: none; }
+.dungeon-link:hover { color: #c9d1d9; text-decoration: underline; }
 .parse-pct    { text-align: right; font-weight: 600; }
 .bar-bg       { background: #21262d; border-radius: 4px; height: 8px; overflow: hidden; }
 .bar-fill     { height: 100%; border-radius: 4px; transition: width 0.4s ease; }

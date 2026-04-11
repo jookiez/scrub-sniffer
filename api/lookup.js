@@ -39,6 +39,14 @@ export default async function handler(req, res) {
     const topDpsData = role === 'dps' ? summarizeTopDps(interruptRuns, name) : null;
     const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts, { topDpsData, healerDmg });
 
+    // Build a dungeon → WarcraftLogs report URL map from interrupt run data (which fetched report codes)
+    const reportLinks = {};
+    for (const run of interruptRuns) {
+      if (run.code && run.fightID && run.dungeon) {
+        reportLinks[run.dungeon] = `https://www.warcraftlogs.com/reports/${run.code}#fight=${run.fightID}`;
+      }
+    }
+
     res.status(200).json({
       character: { name, server, region, specName, role, roleLabel: cfg.label },
       verdict,
@@ -48,6 +56,7 @@ export default async function handler(req, res) {
       raid,
       interrupts,
       topDps: topDpsData,
+      reportLinks,
     });
   } catch (err) {
     console.error(err);

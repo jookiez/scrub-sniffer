@@ -262,19 +262,29 @@ function reasonClass(text) {
   return 'ok';
 }
 
+function buildRunsHtml(runs, reportLinks = {}) {
+  return (runs ?? []).map(run => {
+    const url = reportLinks[run.dungeon];
+    const nameHtml = url
+      ? `<a href="${url}" target="_blank" rel="noopener" class="dungeon-link">${run.dungeon}</a>`
+      : run.dungeon;
+    return `
+      <div class="parse-row">
+        <span class="dungeon-name">${nameHtml}</span>
+        <span class="parse-pct" style="color:${parseColor(run.percentile)}">${run.percentile}%</span>
+        <div class="bar-bg"><div class="bar-fill" style="width:${run.percentile}%;background:${parseColor(run.percentile)}"></div></div>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderResult(data) {
-  const { character, verdict, reasons, mplus, healerDmg, raid, interrupts, topDps } = data;
+  const { character, verdict, reasons, mplus, healerDmg, raid, interrupts, topDps, reportLinks = {} } = data;
   const { role } = character;
   const isPass  = verdict === 'PASS';
   const metricLabel = 'Score';
 
-  const runsHtml = (mplus.runs ?? []).slice(0, 5).map(run => `
-    <div class="parse-row">
-      <span class="dungeon-name">${run.dungeon}</span>
-      <span class="parse-pct" style="color:${parseColor(run.percentile)}">${run.percentile}%</span>
-      <div class="bar-bg"><div class="bar-fill" style="width:${run.percentile}%;background:${parseColor(run.percentile)}"></div></div>
-    </div>
-  `).join('');
+  const runsHtml = buildRunsHtml((mplus.runs ?? []).slice(0, 5), reportLinks);
 
   const reasonsHtml = reasons.map(r => `
     <li class="${reasonClass(r)}">${r}</li>
@@ -325,6 +335,11 @@ function renderResult(data) {
       ${healerDmg.hasLogs ? `
         <div class="stat-row"><span>Avg parse</span><span class="stat-val" style="color:${parseColor(healerDmg.avgPercentile)}">${healerDmg.avgPercentile}%</span></div>
         <div class="stat-row"><span>Runs sampled</span><span class="stat-val">${healerDmg.runs.length}</span></div>
+        <div class="parse-bar-wrap">${buildRunsHtml(healerDmg.runs, reportLinks)}</div>
+        ${(healerDmg.missingDungeons ?? []).length > 0
+          ? `<p style="color:#f0b429;font-size:.82rem;margin-top:8px">\u26a0 No data for: ${healerDmg.missingDungeons.join(', ')}</p>`
+          : ''
+        }
       ` : '<p style="color:#8b949e;font-size:.9rem">No M+ damage data found.</p>'}
     </div>
     ` : ''}
