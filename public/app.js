@@ -284,7 +284,7 @@ function renderResult(data) {
   const isPass  = verdict === 'PASS';
   const metricLabel = 'Score';
 
-  const runsHtml = buildRunsHtml((mplus.runs ?? []).slice(0, 5), reportLinks);
+  const runsHtml = buildRunsHtml(mplus.runs ?? [], reportLinks);
 
   const reasonsHtml = reasons.map(r => `
     <li class="${reasonClass(r)}">${r}</li>
