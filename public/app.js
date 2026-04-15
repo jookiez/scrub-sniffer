@@ -264,9 +264,8 @@ function setCompareMode(on) {
   modeCompare.classList.toggle('active', on);
   formsWrap.classList.toggle('compare-active', on);
   form2.style.display = on ? '' : 'none';
-  // In compare mode, hide individual submit buttons and show a shared one
-  document.getElementById('submit-btn').textContent = on ? 'Sniff Both' : 'Sniff';
-  document.getElementById('submit-btn-2').style.display = on ? 'none' : '';
+  resultEl.innerHTML = '';
+  resultEl.classList.toggle('compare-result', on);
 }
 
 modeSingle.addEventListener('click', () => setCompareMode(false));
@@ -410,7 +409,7 @@ async function runLookup(name, server, region) {
   try {
     const data = await fetchLookup(name, server, region);
     resultEl.innerHTML = renderResultHtml(data);
-    // Add copy-link button back for single mode
+    // Add copy-link button for single mode
     const header = resultEl.querySelector('.verdict-header');
     if (header) {
       const btn = document.createElement('button');
@@ -428,65 +427,62 @@ async function runLookup(name, server, region) {
   }
 }
 
-async function runCompare(n1, s1, r1, n2, s2, r2) {
-  resultEl.innerHTML = '';
-  resultEl.classList.add('compare-result');
-  spinner.style.display = 'block';
-  submitBtn.disabled = true;
+// ---------------------------------------------------------------------------
+// Compare mode: each side sniffs independently into its own column
+// ---------------------------------------------------------------------------
+function ensureCompareLayout() {
+  if (!resultEl.querySelector('.compare-results')) {
+    resultEl.classList.add('compare-result');
+    resultEl.innerHTML = `
+      <div class="compare-results">
+        <div class="compare-col" id="compare-col-1"></div>
+        <div class="compare-divider"></div>
+        <div class="compare-col" id="compare-col-2"></div>
+      </div>
+      <button class="copy-link-btn" id="copy-link-btn" style="margin-top:12px">Copy link</button>
+    `;
+  }
+}
 
+function updateCompareUrl() {
+  const n1 = form.name.value.trim(), s1 = form.server.value.trim(), r1 = form.region.value;
+  const n2 = form2.name.value.trim(), s2 = form2.server.value.trim(), r2 = form2.region.value;
   const params = new URLSearchParams({ name: n1, server: s1, region: r1, name2: n2, server2: s2, region2: r2 });
   history.replaceState(null, '', '?' + params.toString());
+}
 
-  const results = await Promise.allSettled([
-    fetchLookup(n1, s1, r1),
-    fetchLookup(n2, s2, r2),
-  ]);
+async function runCompareSide(side, name, server, region) {
+  ensureCompareLayout();
+  const col = document.getElementById(`compare-col-${side}`);
+  const btn = document.getElementById(side === 1 ? 'submit-btn' : 'submit-btn-2');
+  col.innerHTML = '<p style="color:#8b949e;font-size:.9rem">Checking logs...</p>';
+  btn.disabled = true;
 
-  const col1 = results[0].status === 'fulfilled'
-    ? renderResultHtml(results[0].value)
-    : `<div class="error-msg">${results[0].reason?.message ?? 'Unknown error'}</div>`;
-  const col2 = results[1].status === 'fulfilled'
-    ? renderResultHtml(results[1].value)
-    : `<div class="error-msg">${results[1].reason?.message ?? 'Unknown error'}</div>`;
-
-  resultEl.innerHTML = `
-    <div class="compare-results">
-      <div class="compare-col">${col1}</div>
-      <div class="compare-col">${col2}</div>
-    </div>
-  `;
-
-  // Add copy-link button spanning both
-  const btn = document.createElement('button');
-  btn.className = 'copy-link-btn';
-  btn.id = 'copy-link-btn';
-  btn.textContent = 'Copy link';
-  btn.style.marginTop = '12px';
-  resultEl.appendChild(btn);
-
-  spinner.style.display = 'none';
-  submitBtn.disabled = false;
+  try {
+    const data = await fetchLookup(name, server, region);
+    col.innerHTML = renderResultHtml(data);
+  } catch (err) {
+    col.innerHTML = `<div class="error-msg">${err.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    updateCompareUrl();
+  }
 }
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
-  const n1 = form.name.value.trim(), s1 = form.server.value.trim(), r1 = form.region.value;
+  const n = form.name.value.trim(), s = form.server.value.trim(), r = form.region.value;
   if (compareMode) {
-    const n2 = form2.name.value.trim(), s2 = form2.server.value.trim(), r2 = form2.region.value;
-    if (!n2 || !s2) { form2.reportValidity(); return; }
-    runCompare(n1, s1, r1, n2, s2, r2);
+    runCompareSide(1, n, s, r);
   } else {
-    runLookup(n1, s1, r1);
+    runLookup(n, s, r);
   }
 });
 
-// In compare mode, form2's submit also triggers the compare
 form2.addEventListener('submit', (e) => {
   e.preventDefault();
-  const n1 = form.name.value.trim(), s1 = form.server.value.trim(), r1 = form.region.value;
-  const n2 = form2.name.value.trim(), s2 = form2.server.value.trim(), r2 = form2.region.value;
-  if (!n1 || !s1) { form.reportValidity(); return; }
-  runCompare(n1, s1, r1, n2, s2, r2);
+  const n = form2.name.value.trim(), s = form2.server.value.trim(), r = form2.region.value;
+  runCompareSide(2, n, s, r);
 });
 
 resultEl.addEventListener('click', (e) => {
@@ -512,8 +508,8 @@ if (qp.get('name') && qp.get('server')) {
     form2.server.value = qp.get('server2');
     if (qp.get('region2')) form2.region.value = qp.get('region2');
     setCompareMode(true);
-    runCompare(form.name.value, form.server.value, form.region.value,
-               form2.name.value, form2.server.value, form2.region.value);
+    runCompareSide(1, form.name.value, form.server.value, form.region.value);
+    runCompareSide(2, form2.name.value, form2.server.value, form2.region.value);
   } else {
     runLookup(form.name.value, form.server.value, form.region.value);
   }
