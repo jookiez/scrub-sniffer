@@ -198,8 +198,12 @@ export function getVerdict(role, raid, mplus, interrupts, { topDpsData = null, h
 
   // --- Raid ---
   if (!raid.hasLogs) {
-    verdict = SCRUB;
-    reasons.push(`No heroic or mythic raid logs — unverified ${cfg.label.toLowerCase()}`);
+    if (role === 'healer') {
+      reasons.push(`⚠ No heroic or mythic raid logs — raid performance unverified`);
+    } else {
+      verdict = SCRUB;
+      reasons.push(`No heroic or mythic raid logs — unverified ${cfg.label.toLowerCase()}`);
+    }
   } else if (raid.avgParse < cfg.raidThreshold) {
     verdict = SCRUB;
     reasons.push(`Raid avg too low: ${raid.avgParse}% (need ${cfg.raidThreshold}%+, heroic/mythic combined)`);
