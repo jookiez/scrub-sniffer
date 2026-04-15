@@ -181,69 +181,100 @@ const SERVERS = {
   ],
 };
 
-const serverInput    = document.getElementById('server-input');
-const serverDropdown = document.getElementById('server-dropdown');
-let sdActiveIdx = -1;
+// ---------------------------------------------------------------------------
+// Server combobox factory
+// ---------------------------------------------------------------------------
+function initServerCombo(inputId, dropdownId, regionSelect) {
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+  let activeIdx = -1;
 
-function sdFilter(query) {
-  const list = SERVERS[document.querySelector('select[name="region"]').value] ?? [];
-  if (!query) return list.slice(0, 25);
-  const q = query.toLowerCase();
-  return list.filter(s => s.n.toLowerCase().includes(q) || s.s.includes(q)).slice(0, 25);
-}
-
-function sdRender(items) {
-  serverDropdown.innerHTML = '';
-  sdActiveIdx = -1;
-  if (!items.length) { serverDropdown.classList.remove('open'); return; }
-  items.forEach((s, i) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span>${s.n}</span>`;
-    li.dataset.slug = s.s;
-    li.addEventListener('mousedown', e => { e.preventDefault(); sdSelect(s); });
-    serverDropdown.appendChild(li);
-  });
-  serverDropdown.classList.add('open');
-}
-
-function sdSelect(s) {
-  serverInput.value = s.s;
-  serverDropdown.classList.remove('open');
-}
-
-serverInput.addEventListener('input',  () => sdRender(sdFilter(serverInput.value)));
-serverInput.addEventListener('focus',  () => sdRender(sdFilter(serverInput.value)));
-serverInput.addEventListener('blur',   () => setTimeout(() => serverDropdown.classList.remove('open'), 150));
-serverInput.addEventListener('keydown', e => {
-  const items = serverDropdown.querySelectorAll('li');
-  if (!serverDropdown.classList.contains('open') || !items.length) return;
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    sdActiveIdx = Math.min(sdActiveIdx + 1, items.length - 1);
-    items.forEach((li, i) => li.classList.toggle('sd-active', i === sdActiveIdx));
-    items[sdActiveIdx]?.scrollIntoView({block:'nearest'});
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    sdActiveIdx = Math.max(sdActiveIdx - 1, -1);
-    items.forEach((li, i) => li.classList.toggle('sd-active', i === sdActiveIdx));
-    items[sdActiveIdx]?.scrollIntoView({block:'nearest'});
-  } else if (e.key === 'Enter' && sdActiveIdx >= 0) {
-    e.preventDefault();
-    sdSelect({s: items[sdActiveIdx].dataset.slug, n: items[sdActiveIdx].querySelector('span').textContent});
-  } else if (e.key === 'Escape') {
-    serverDropdown.classList.remove('open');
+  function filter(query) {
+    const list = SERVERS[regionSelect.value] ?? [];
+    if (!query) return list.slice(0, 25);
+    const q = query.toLowerCase();
+    return list.filter(s => s.n.toLowerCase().includes(q) || s.s.includes(q)).slice(0, 25);
   }
-});
 
-document.querySelector('select[name="region"]').addEventListener('change', () => {
-  serverInput.value = '';
-  serverDropdown.classList.remove('open');
-});
+  function render(items) {
+    dropdown.innerHTML = '';
+    activeIdx = -1;
+    if (!items.length) { dropdown.classList.remove('open'); return; }
+    items.forEach((s) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${s.n}</span>`;
+      li.dataset.slug = s.s;
+      li.addEventListener('mousedown', e => { e.preventDefault(); select(s); });
+      dropdown.appendChild(li);
+    });
+    dropdown.classList.add('open');
+  }
+
+  function select(s) {
+    input.value = s.s;
+    dropdown.classList.remove('open');
+  }
+
+  input.addEventListener('input',  () => render(filter(input.value)));
+  input.addEventListener('focus',  () => render(filter(input.value)));
+  input.addEventListener('blur',   () => setTimeout(() => dropdown.classList.remove('open'), 150));
+  input.addEventListener('keydown', e => {
+    const items = dropdown.querySelectorAll('li');
+    if (!dropdown.classList.contains('open') || !items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      items.forEach((li, i) => li.classList.toggle('sd-active', i === activeIdx));
+      items[activeIdx]?.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = Math.max(activeIdx - 1, -1);
+      items.forEach((li, i) => li.classList.toggle('sd-active', i === activeIdx));
+      items[activeIdx]?.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'Enter' && activeIdx >= 0) {
+      e.preventDefault();
+      select({s: items[activeIdx].dataset.slug, n: items[activeIdx].querySelector('span').textContent});
+    } else if (e.key === 'Escape') {
+      dropdown.classList.remove('open');
+    }
+  });
+
+  regionSelect.addEventListener('change', () => {
+    input.value = '';
+    dropdown.classList.remove('open');
+  });
+}
+
+const form  = document.getElementById('lookup-form');
+const form2 = document.getElementById('lookup-form-2');
+initServerCombo('server-input', 'server-dropdown', form.querySelector('select[name="region"]'));
+initServerCombo('server-input-2', 'server-dropdown-2', form2.querySelector('select[name="region"]'));
+
+// ---------------------------------------------------------------------------
+// Compare mode toggle
+// ---------------------------------------------------------------------------
+const formsWrap  = document.getElementById('forms-wrap');
+const modeSingle = document.getElementById('mode-single');
+const modeCompare = document.getElementById('mode-compare');
+let compareMode = false;
+
+function setCompareMode(on) {
+  compareMode = on;
+  modeSingle.classList.toggle('active', !on);
+  modeCompare.classList.toggle('active', on);
+  formsWrap.classList.toggle('compare-active', on);
+  form2.style.display = on ? '' : 'none';
+  // In compare mode, hide individual submit buttons and show a shared one
+  document.getElementById('submit-btn').textContent = on ? 'Sniff Both' : 'Sniff';
+  document.getElementById('submit-btn-2').style.display = on ? 'none' : '';
+}
+
+modeSingle.addEventListener('click', () => setCompareMode(false));
+modeCompare.addEventListener('click', () => setCompareMode(true));
 
 // ---------------------------------------------------------------------------
 // Main app
 // ---------------------------------------------------------------------------
-const form      = document.getElementById('lookup-form');
 const resultEl  = document.getElementById('result');
 const spinner   = document.getElementById('spinner');
 const submitBtn = document.getElementById('submit-btn');
@@ -278,7 +309,15 @@ function buildRunsHtml(runs, reportLinks = {}) {
   }).join('');
 }
 
-function renderResult(data) {
+async function fetchLookup(name, server, region) {
+  const params = new URLSearchParams({ name, server, region });
+  const res  = await fetch(`/api/lookup?${params}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? 'Unknown error');
+  return data;
+}
+
+function renderResultHtml(data) {
   const { character, reasons, mplus, healerDmg, raid, interrupts, topDps, reportLinks = {} } = data;
   const { role } = character;
 
@@ -308,13 +347,12 @@ function renderResult(data) {
       })()
     : '';
 
-  resultEl.innerHTML = `
+  return `
     <div class="card ${isPass ? 'verdict-pass' : 'verdict-scrub'}">
       <div class="verdict-header">
         <span class="verdict-badge ${isPass ? 'badge-pass' : 'badge-scrub'}">${badgeText}</span>
         <span class="char-name">${character.name}-${character.server}</span>
         <span class="role-tag">${character.roleLabel}${character.specName ? ' \u00b7 ' + character.specName : ''}</span>
-        <button class="copy-link-btn" id="copy-link-btn" style="margin-left:auto">Copy link</button>
       </div>
       <ul class="reasons">${reasonsHtml}</ul>
     </div>
@@ -360,6 +398,97 @@ function renderResult(data) {
   `;
 }
 
+async function runLookup(name, server, region) {
+  resultEl.innerHTML = '';
+  resultEl.classList.remove('compare-result');
+  spinner.style.display = 'block';
+  submitBtn.disabled = true;
+
+  const params = new URLSearchParams({ name, server, region });
+  history.replaceState(null, '', '?' + params.toString());
+
+  try {
+    const data = await fetchLookup(name, server, region);
+    resultEl.innerHTML = renderResultHtml(data);
+    // Add copy-link button back for single mode
+    const header = resultEl.querySelector('.verdict-header');
+    if (header) {
+      const btn = document.createElement('button');
+      btn.className = 'copy-link-btn';
+      btn.id = 'copy-link-btn';
+      btn.style.marginLeft = 'auto';
+      btn.textContent = 'Copy link';
+      header.appendChild(btn);
+    }
+  } catch (err) {
+    resultEl.innerHTML = `<div class="error-msg">${err.message}</div>`;
+  } finally {
+    spinner.style.display = 'none';
+    submitBtn.disabled = false;
+  }
+}
+
+async function runCompare(n1, s1, r1, n2, s2, r2) {
+  resultEl.innerHTML = '';
+  resultEl.classList.add('compare-result');
+  spinner.style.display = 'block';
+  submitBtn.disabled = true;
+
+  const params = new URLSearchParams({ name: n1, server: s1, region: r1, name2: n2, server2: s2, region2: r2 });
+  history.replaceState(null, '', '?' + params.toString());
+
+  const results = await Promise.allSettled([
+    fetchLookup(n1, s1, r1),
+    fetchLookup(n2, s2, r2),
+  ]);
+
+  const col1 = results[0].status === 'fulfilled'
+    ? renderResultHtml(results[0].value)
+    : `<div class="error-msg">${results[0].reason?.message ?? 'Unknown error'}</div>`;
+  const col2 = results[1].status === 'fulfilled'
+    ? renderResultHtml(results[1].value)
+    : `<div class="error-msg">${results[1].reason?.message ?? 'Unknown error'}</div>`;
+
+  resultEl.innerHTML = `
+    <div class="compare-results">
+      <div class="compare-col">${col1}</div>
+      <div class="compare-col">${col2}</div>
+    </div>
+  `;
+
+  // Add copy-link button spanning both
+  const btn = document.createElement('button');
+  btn.className = 'copy-link-btn';
+  btn.id = 'copy-link-btn';
+  btn.textContent = 'Copy link';
+  btn.style.marginTop = '12px';
+  resultEl.appendChild(btn);
+
+  spinner.style.display = 'none';
+  submitBtn.disabled = false;
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const n1 = form.name.value.trim(), s1 = form.server.value.trim(), r1 = form.region.value;
+  if (compareMode) {
+    const n2 = form2.name.value.trim(), s2 = form2.server.value.trim(), r2 = form2.region.value;
+    if (!n2 || !s2) { form2.reportValidity(); return; }
+    runCompare(n1, s1, r1, n2, s2, r2);
+  } else {
+    runLookup(n1, s1, r1);
+  }
+});
+
+// In compare mode, form2's submit also triggers the compare
+form2.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const n1 = form.name.value.trim(), s1 = form.server.value.trim(), r1 = form.region.value;
+  const n2 = form2.name.value.trim(), s2 = form2.server.value.trim(), r2 = form2.region.value;
+  if (!n1 || !s1) { form.reportValidity(); return; }
+  runCompare(n1, s1, r1, n2, s2, r2);
+});
+
 resultEl.addEventListener('click', (e) => {
   const btn = e.target.closest('#copy-link-btn');
   if (!btn) return;
@@ -370,41 +499,22 @@ resultEl.addEventListener('click', (e) => {
   });
 });
 
-async function runLookup(name, server, region) {
-  resultEl.innerHTML = '';
-  spinner.style.display = 'block';
-  submitBtn.disabled = true;
-
-  const params = new URLSearchParams({ name, server, region });
-  history.replaceState(null, '', '?' + params.toString());
-
-  try {
-    const res  = await fetch(`/api/lookup?${params}`);
-    const data = await res.json();
-
-    if (!res.ok) {
-      resultEl.innerHTML = `<div class="error-msg">${data.error ?? 'Unknown error'}</div>`;
-    } else {
-      renderResult(data);
-    }
-  } catch (err) {
-    resultEl.innerHTML = `<div class="error-msg">Request failed: ${err.message}</div>`;
-  } finally {
-    spinner.style.display = 'none';
-    submitBtn.disabled = false;
-  }
-}
-
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-  runLookup(form.name.value.trim(), form.server.value.trim(), form.region.value);
-});
-
 // Pre-fill and auto-run from URL params (shareable links)
 const qp = new URLSearchParams(location.search);
 if (qp.get('name') && qp.get('server')) {
   form.name.value   = qp.get('name');
   form.server.value = qp.get('server');
   if (qp.get('region')) form.region.value = qp.get('region');
-  runLookup(form.name.value, form.server.value, form.region.value);
+
+  if (qp.get('name2') && qp.get('server2')) {
+    // Compare mode from URL
+    form2.name.value   = qp.get('name2');
+    form2.server.value = qp.get('server2');
+    if (qp.get('region2')) form2.region.value = qp.get('region2');
+    setCompareMode(true);
+    runCompare(form.name.value, form.server.value, form.region.value,
+               form2.name.value, form2.server.value, form2.region.value);
+  } else {
+    runLookup(form.name.value, form.server.value, form.region.value);
+  }
 }

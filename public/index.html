@@ -46,20 +46,42 @@
   <h1>👃 Scrub Sniffer</h1>
   <p class="subtitle">WoW M+ player vetter — no scrubs allowed</p>
 
-  <form id="lookup-form">
-    <input name="name"   type="text"   placeholder="Character name" required autocomplete="off" />
-    <div class="server-combo">
-      <input name="server" type="text" placeholder="Server (e.g. area-52)" required autocomplete="off" id="server-input" />
-      <ul class="server-dropdown" id="server-dropdown" role="listbox"></ul>
-    </div>
-    <select name="region">
-      <option value="us">US</option>
-      <option value="eu">EU</option>
-      <option value="kr">KR</option>
-      <option value="tw">TW</option>
-    </select>
-    <button type="submit" id="submit-btn">Sniff</button>
-  </form>
+  <div class="mode-toggle">
+    <button type="button" id="mode-single" class="mode-btn active">Single</button>
+    <button type="button" id="mode-compare" class="mode-btn">Compare</button>
+  </div>
+
+  <div id="forms-wrap" class="forms-wrap">
+    <form id="lookup-form" class="lookup-form">
+      <input name="name"   type="text"   placeholder="Character name" required autocomplete="off" />
+      <div class="server-combo">
+        <input name="server" type="text" placeholder="Server (e.g. area-52)" required autocomplete="off" id="server-input" />
+        <ul class="server-dropdown" id="server-dropdown" role="listbox"></ul>
+      </div>
+      <select name="region">
+        <option value="us">US</option>
+        <option value="eu">EU</option>
+        <option value="kr">KR</option>
+        <option value="tw">TW</option>
+      </select>
+      <button type="submit" id="submit-btn">Sniff</button>
+    </form>
+
+    <form id="lookup-form-2" class="lookup-form compare-form" style="display:none">
+      <input name="name"   type="text"   placeholder="Character name" required autocomplete="off" />
+      <div class="server-combo">
+        <input name="server" type="text" placeholder="Server (e.g. area-52)" required autocomplete="off" id="server-input-2" />
+        <ul class="server-dropdown" id="server-dropdown-2" role="listbox"></ul>
+      </div>
+      <select name="region">
+        <option value="us">US</option>
+        <option value="eu">EU</option>
+        <option value="kr">KR</option>
+        <option value="tw">TW</option>
+      </select>
+      <button type="submit" id="submit-btn-2">Sniff</button>
+    </form>
+  </div>
 
   <p id="spinner">Checking logs...</p>
   <div id="result"></div>
