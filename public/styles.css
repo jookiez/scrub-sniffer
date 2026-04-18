@@ -302,6 +302,22 @@ button:disabled{ background: #4a3f1a; color: #6e5a1a; cursor: not-allowed; }
   display: block;
 }
 
+.site-footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  text-align: center;
+  font-size: 0.85rem;
+}
+.site-footer a {
+  color: #8b949e;
+  text-decoration: none;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 6px 14px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.site-footer a:hover { border-color: #f0b429; color: #f0b429; }
+
 @media (max-width: 720px) {
   .compare-results { grid-template-columns: 1fr; }
   .compare-divider { width: 100%; height: 1px; min-height: 0; }
