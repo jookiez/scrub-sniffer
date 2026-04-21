@@ -70,7 +70,7 @@ export function summarizeMythicPlus(zoneRankingsBlob) {
         encounterID: Number(id),
         dungeon:     nameMap[id] ?? 'Unknown',
         percentile:  Math.round(data.best_historical_percentile),
-        keyLevel:    data.best_keystone_level ?? null,
+        keyLevel:    data.best_level ?? null,
       }))
       .sort((a, b) => b.percentile - a.percentile);
 
