@@ -2,6 +2,22 @@ import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBest
 import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, summarizeTopDps, getVerdict } from '../src/utils/grader.js';
 import { detectRole, extractSpecFromRankings, ROLE_CONFIG } from '../src/utils/roles.js';
 
+// In-process cache: catches rapid back-to-back hits within a warm serverless instance.
+// Vercel edge cache (Cache-Control headers) handles the cross-instance case.
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const cache = new Map();
+
+function getCached(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { cache.delete(key); return null; }
+  return entry.data;
+}
+
+function setCached(key, data) {
+  cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
@@ -9,6 +25,14 @@ export default async function handler(req, res) {
 
   if (!name || !server) {
     return res.status(400).json({ error: 'Missing required params: name, server' });
+  }
+
+  const cacheKey = `${name.toLowerCase()}-${server.toLowerCase()}-${region.toLowerCase()}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('X-Cache', 'HIT');
+    return res.status(200).json(cached);
   }
 
   try {
@@ -47,7 +71,7 @@ export default async function handler(req, res) {
       }
     }
 
-    res.status(200).json({
+    const payload = {
       character: { name, server, region, specName, role, roleLabel: cfg.label },
       verdict,
       reasons,
@@ -57,7 +81,12 @@ export default async function handler(req, res) {
       interrupts,
       topDps: topDpsData,
       reportLinks,
-    });
+    };
+
+    setCached(cacheKey, payload);
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('X-Cache', 'MISS');
+    res.status(200).json(payload);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
