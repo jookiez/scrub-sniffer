@@ -302,8 +302,8 @@ function buildRunsHtml(runs, reportLinks = {}) {
     return `
       <div class="parse-row">
         <span class="dungeon-name">${nameHtml}</span>
-        <span class="parse-pct" style="color:${parseColor(run.percentile)}">${run.percentile}%</span>
         ${keyHtml}
+        <span class="parse-pct" style="color:${parseColor(run.percentile)}">${run.percentile}%</span>
         <div class="bar-bg"><div class="bar-fill" style="width:${run.percentile}%;background:${parseColor(run.percentile)}"></div></div>
       </div>
     `;

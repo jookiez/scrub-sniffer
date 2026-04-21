@@ -183,7 +183,7 @@ button:disabled{ background: #4a3f1a; color: #6e5a1a; cursor: not-allowed; }
 
 .parse-row {
   display: grid;
-  grid-template-columns: 1fr 42px 36px 120px;
+  grid-template-columns: 1fr 36px 42px 120px;
   align-items: center;
   gap: 8px;
   font-size: 0.82rem;
