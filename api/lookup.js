@@ -2,10 +2,28 @@ import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBest
 import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, summarizeTopDps, getVerdict } from '../src/utils/grader.js';
 import { detectRole, extractSpecFromRankings, ROLE_CONFIG } from '../src/utils/roles.js';
 
-// In-process cache: catches rapid back-to-back hits within a warm serverless instance.
+// ---------------------------------------------------------------------------
+// Per-IP rate limiter — 10 unique lookups per minute per IP.
+// Cached responses don't count against the limit (they bypass this check).
+// ---------------------------------------------------------------------------
+const RATE_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT     = 10;
+const ipRequests     = new Map(); // IP -> [timestamp, ...]
+
+function isRateLimited(ip) {
+  const now        = Date.now();
+  const timestamps = (ipRequests.get(ip) ?? []).filter(t => now - t < RATE_WINDOW_MS);
+  timestamps.push(now);
+  ipRequests.set(ip, timestamps);
+  return timestamps.length > RATE_LIMIT;
+}
+
+// ---------------------------------------------------------------------------
+// In-process cache — catches repeated lookups within a warm serverless instance.
 // Vercel edge cache (Cache-Control headers) handles the cross-instance case.
+// ---------------------------------------------------------------------------
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-const cache = new Map();
+const cache        = new Map();
 
 function getCached(key) {
   const entry = cache.get(key);
@@ -27,12 +45,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required params: name, server' });
   }
 
+  // Serve from cache before hitting the rate limiter — cached responses are free.
   const cacheKey = `${name.toLowerCase()}-${server.toLowerCase()}-${region.toLowerCase()}`;
-  const cached = getCached(cacheKey);
+  const cached   = getCached(cacheKey);
   if (cached) {
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
     res.setHeader('X-Cache', 'HIT');
     return res.status(200).json(cached);
+  }
+
+  // Rate limit uncached (live) requests by IP.
+  const ip = (req.headers['x-forwarded-for'] ?? '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
+  if (isRateLimited(ip)) {
+    return res.status(429).json({ error: 'Too many requests — slow down and try again in a minute.' });
   }
 
   try {
@@ -50,7 +75,7 @@ export default async function handler(req, res) {
                         :                    charMplus.pointsAndDamageRankings;
     const mplus         = summarizeMythicPlus(mplusRankings);
     const healerDmg     = role === 'healer' ? summarizeMythicPlus(charMplus.pointsAndDamageRankings) : null;
-    const encounters = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
+    const encounters    = mplus.runs.map(r => ({ id: r.encounterID, name: r.dungeon }));
 
     // Step 2: fetch raid + interrupts in parallel with role-correct metric
     const [charRaid, interruptRuns] = await Promise.all([
@@ -58,7 +83,7 @@ export default async function handler(req, res) {
       getInterruptsFromBestRuns(name, server, region, encounters),
     ]);
 
-    const raid      = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
+    const raid       = summarizeRaid(charRaid?.heroic, charRaid?.mythic);
     const interrupts = summarizeInterrupts(interruptRuns, name);
     const topDpsData = role === 'dps' ? summarizeTopDps(interruptRuns, name) : null;
     const { verdict, reasons } = getVerdict(role, raid, mplus, interrupts, { topDpsData, healerDmg });
