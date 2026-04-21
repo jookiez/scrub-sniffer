@@ -298,10 +298,12 @@ function buildRunsHtml(runs, reportLinks = {}) {
     const nameHtml = url
       ? `<a href="${url}" target="_blank" rel="noopener" class="dungeon-link">${run.dungeon}</a>`
       : run.dungeon;
+    const keyHtml = run.keyLevel ? `<span class="key-level">+${run.keyLevel}</span>` : '<span></span>';
     return `
       <div class="parse-row">
         <span class="dungeon-name">${nameHtml}</span>
         <span class="parse-pct" style="color:${parseColor(run.percentile)}">${run.percentile}%</span>
+        ${keyHtml}
         <div class="bar-bg"><div class="bar-fill" style="width:${run.percentile}%;background:${parseColor(run.percentile)}"></div></div>
       </div>
     `;
