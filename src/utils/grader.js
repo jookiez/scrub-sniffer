@@ -15,7 +15,7 @@
  *   - Raid heroic/mythic KRSI avg >= 70%  (required)
  *   - Interrupts are EXPECTED — warn if they're not top-2
  *
- * All roles: must have at least one heroic or mythic raid encounter logged.
+ * All roles: no raid logs → flagged with a warning, not an automatic SCRUB.
  */
 
 import { ROLE_CONFIG } from './roles.js';
@@ -199,12 +199,7 @@ export function getVerdict(role, raid, mplus, interrupts, { topDpsData = null, h
 
   // --- Raid ---
   if (!raid.hasLogs) {
-    if (role === 'healer') {
-      reasons.push(`⚠ No heroic or mythic raid logs — raid performance unverified`);
-    } else {
-      verdict = SCRUB;
-      reasons.push(`No heroic or mythic raid logs — unverified ${cfg.label.toLowerCase()}`);
-    }
+    reasons.push(`⚠ No heroic or mythic raid logs — raid performance unverified`);
   } else if (raid.avgParse < cfg.raidThreshold) {
     verdict = SCRUB;
     reasons.push(`Raid avg too low: ${raid.avgParse}% (need ${cfg.raidThreshold}%+, heroic/mythic combined)`);
