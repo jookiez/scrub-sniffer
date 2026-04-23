@@ -45,7 +45,7 @@ Role is auto-detected from the spec name in `allStars[0].spec` on M+ rankings.
 | Healer | `points_and_healing`   | `hps`       | 70%          | no bonus                           | 70%            |
 
 Healers also require M+ damage avg (`points_and_damage`) >= 50%.
-| Tank   | `points_and_damage`    | `dps`       | 70%          | n/a                                | 70%            |
+| Tank   | `points_and_damage`    | `dps`       | 50%          | n/a                                | 50%            |
 
 Notes:
 - `krsi` (survivability index) is **deprecated** — returns no data for current zones. Do not use.

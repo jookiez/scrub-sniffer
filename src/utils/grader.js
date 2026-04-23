@@ -145,7 +145,7 @@ export function summarizeInterrupts(interruptRuns, characterName) {
 
   return {
     topInterruptor:     runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.8,
-    topTankInterruptor: runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.8,
+    topTankInterruptor: runsWithCharacter > 0 && rank1or2Count / runsWithCharacter >= 0.75,
     rank1or2Count,
     rank1to3Count,
     totalRuns: runsWithCharacter, // denominator = only runs the character actually played
@@ -280,7 +280,7 @@ export function getVerdict(role, raid, mplus, interrupts, { topDpsData = null, h
       // Tanks must be top-2 interruptor in 80%+ of runs
       if (totalRuns > 0 && !topTankInterruptor) {
         verdict = SCRUB;
-        reasons.push(`Interrupts: top-2 in only ${rank1or2Count}/${totalRuns} runs — tanks need 80%+ of runs`);
+        reasons.push(`Interrupts: top-2 in only ${rank1or2Count}/${totalRuns} runs — tanks need 6/8 (75%+)`);
       } else if (totalRuns > 0) {
         reasons.push(`Interrupts OK: top-2 in ${rank1or2Count}/${totalRuns} runs`);
       }
