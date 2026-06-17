@@ -303,9 +303,8 @@ button:disabled{ background: #4a3f1a; color: #6e5a1a; cursor: not-allowed; }
   display: block;
 }
 
-.site-footer {
-  margin-top: 48px;
-  padding-top: 24px;
+.header-links {
+  margin: 0 0 24px;
   text-align: center;
   font-size: 0.85rem;
   display: flex;
@@ -314,7 +313,7 @@ button:disabled{ background: #4a3f1a; color: #6e5a1a; cursor: not-allowed; }
   align-items: center;
   flex-wrap: wrap;
 }
-.site-footer a {
+.header-links a {
   color: #8b949e;
   text-decoration: none;
   border: 1px solid #30363d;
@@ -322,7 +321,7 @@ button:disabled{ background: #4a3f1a; color: #6e5a1a; cursor: not-allowed; }
   padding: 6px 14px;
   transition: border-color 0.15s, color 0.15s;
 }
-.site-footer a:hover { border-color: #f0b429; color: #f0b429; }
+.header-links a:hover { border-color: #f0b429; color: #f0b429; }
 
 .privacy-corner {
   position: fixed;
