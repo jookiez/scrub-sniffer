@@ -1,4 +1,4 @@
-import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBestRuns } from '../src/api/warcraftlogs-v2.js';
+import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBestRuns, getCurrentZones } from '../src/api/warcraftlogs-v2.js';
 import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, summarizeTopDps, getVerdict } from '../src/utils/grader.js';
 import { detectRole, extractSpecFromRankings, ROLE_CONFIG } from '../src/utils/roles.js';
 
@@ -45,8 +45,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required params: name, server' });
   }
 
-  // Serve from cache before hitting the rate limiter — cached responses are free.
-  const cacheKey = `${name.toLowerCase()}-${server.toLowerCase()}-${region.toLowerCase()}`;
+  // Zone IDs are part of the cache key so a season rollover invalidates every
+  // cached result instead of serving last season's grades from a warm instance.
+  const zones    = await getCurrentZones();
+  const cacheKey = `${zones.mplusZone}-${zones.raidZone}-${name.toLowerCase()}-${server.toLowerCase()}-${region.toLowerCase()}`;
   const cached   = getCached(cacheKey);
   if (cached) {
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
@@ -98,6 +100,7 @@ export default async function handler(req, res) {
 
     const payload = {
       character: { name, server, region, specName, role, roleLabel: cfg.label },
+      season: { mplus: zones.mplusLabel, raid: zones.raidLabel },
       verdict,
       reasons,
       mplus,

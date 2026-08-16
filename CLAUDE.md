@@ -10,7 +10,9 @@ GitHub: https://github.com/jookiez/scrub-sniffer
 ```
 api/lookup.js                Vercel serverless handler (the web API endpoint)
 src/index.js                 CLI entry point (node --env-file=.env src/index.js <name> <server> [region])
-src/api/warcraftlogs-v2.js   WarcraftLogs V2 GraphQL client
+src/api/wcl-client.js        OAuth token + GraphQL transport (shared)
+src/api/zones.js             Resolves which season / raid tier to grade against
+src/api/warcraftlogs-v2.js   WarcraftLogs V2 character queries
 src/utils/grader.js          Role-aware grading logic
 src/utils/roles.js           Role detection from spec name, per-role config
 public/index.html            Frontend (single-file, no build step)
@@ -25,15 +27,39 @@ vercel.json                  Rewrites: /api/* → api functions, /* → public/i
 - Credentials in env: `WARCRAFTLOGS_CLIENT_ID`, `WARCRAFTLOGS_CLIENT_SECRET`
 - Client owned by user `jookiez` on warcraftlogs.com
 
-## Zone IDs (update each season)
+## Zone IDs / seasons — auto-detected, do not hardcode
 
-```javascript
-// warcraftlogs-v2.js
-const CURRENT_MPLUS_ZONE = 47;  // Midnight S1
-const CURRENT_RAID_ZONE  = 46;  // VS / DR / MQD
-```
+`src/api/zones.js` resolves the live M+ season and raid tier at runtime, so the
+site rolls over to a new season on its own. **Nothing to update each season.**
 
-To find new zone IDs: query `worldData { expansions { zones { id name } } }` on the V2 API.
+How it decides: it lists the newest expansion's zones and picks the newest one
+that has **rankings** in it. Newest-by-ID alone is wrong — WarcraftLogs publishes
+next season's zone weeks early and accepts test logs into it, but rankings stay
+empty until the season actually opens. M+ and raid resolve independently, so a
+raid tier that opens a week after the M+ season flips on its own schedule.
+
+Two traps the filtering handles (both real, verified 2026-08-15):
+- **PTR twins share the live zone's name.** Zone 54 "The Venomous Abyss" is PTR,
+  zone 53 "The Venomous Abyss" is live — the only difference is the *partition*
+  ("PTR" vs "12.1"). PTR testers do get ranked, so a zone whose partitions are
+  all test partitions is rejected. Name filtering alone would grade beta parses.
+- Non-content zones with plausible encounter counts, e.g. zone 52 "Dummy Dome"
+  (5 target-dummy encounters), "Complete Raids" rollups, Delves, Mage Tower.
+
+Resolution order: `MPLUS_ZONE_ID` / `RAID_ZONE_ID` env vars → auto-detection
+(cached 6h per warm instance) → `FALLBACK` in zones.js.
+
+Set the env vars in the Vercel dashboard to pin a season with no redeploy — the
+escape hatch if detection ever picks wrong. Unset them to resume auto-detection.
+
+The resolved season is returned in the API payload as `season: { mplus, raid }`
+and rendered next to the Mythic+ / Raid section titles, so the site always shows
+which season it graded. The CLI prints it too, with the zone IDs and whether
+they came from env, detection, or fallback.
+
+Zone IDs for reference (`worldData { expansions { zones { id name } } }`):
+TWW S1=39, S2=43, S3=45 · Midnight S1=47, S2=55 · Raids: Manaforge Omega=44,
+VS/DR/MQD=46, The Venomous Abyss=53.
 
 ## Role detection and grading
 
@@ -76,6 +102,7 @@ dpsRankings:              zoneRankings(zoneID: $zoneID, metric: dps)
 ## Interrupt logic
 
 - Source: `encounterRankings` per dungeon → best run report code → interrupt table
+- Season-scoped for free: encounter IDs are unique per season (Ruby Life Pools is 112521 in Midnight S2, a different ID in every other season), and the IDs come from the resolved season's `zoneRankings`, so no zone filter is needed here
 - Interrupt table nesting: `table.data.entries[0].entries` (double nested — outer is per-fight, inner is per-spell)
 - Table is keyed by spell interrupted, not player — must aggregate per player across all spells
 - If a dungeon has no report code (private/expired log), a stub is returned with the character in `actorNames` so the run still counts in the denominator
@@ -108,3 +135,7 @@ node --env-file=.env src/index.js Defnotash alleria us
 Push to `main` → Vercel auto-deploys. Env vars must be set in Vercel dashboard under Production environment:
 - `WARCRAFTLOGS_CLIENT_ID`
 - `WARCRAFTLOGS_CLIENT_SECRET`
+
+Optional, normally unset (see the zone section above):
+- `MPLUS_ZONE_ID` — pin the M+ season zone, overriding auto-detection
+- `RAID_ZONE_ID` — pin the raid tier zone, overriding auto-detection

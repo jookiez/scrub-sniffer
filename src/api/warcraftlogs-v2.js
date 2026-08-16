@@ -1,66 +1,13 @@
 // WarcraftLogs V2 GraphQL API client (OAuth Client Credentials)
 // Docs: https://www.warcraftlogs.com/api/docs
+//
+// Zone IDs are no longer hardcoded here — zones.js resolves the live M+ season
+// and raid tier at runtime so this keeps grading the current season on its own.
 
-const TOKEN_URL = 'https://www.warcraftlogs.com/oauth/token';
-const GQL_URL   = 'https://www.warcraftlogs.com/api/v2/client';
+import { gql } from './wcl-client.js';
+import { getCurrentZones } from './zones.js';
 
-// Update this each season. Zone IDs confirmed via worldData.expansions query:
-// TWW S1=39, TWW S2=43, TWW S3=45, Midnight S1=47
-// Raids: Manaforge Omega=44, VS/DR/MQD=46
-const CURRENT_MPLUS_ZONE = 47;
-const CURRENT_RAID_ZONE  = 46;
-
-let _token       = null;
-let _tokenExpiry = 0;
-
-function getCredentials() {
-  const clientId     = process.env.WARCRAFTLOGS_CLIENT_ID;
-  const clientSecret = process.env.WARCRAFTLOGS_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
-    throw new Error('Missing WARCRAFTLOGS_CLIENT_ID or WARCRAFTLOGS_CLIENT_SECRET in .env');
-  }
-  return { clientId, clientSecret };
-}
-
-async function getToken() {
-  if (_token && Date.now() < _tokenExpiry) return _token;
-  const { clientId, clientSecret } = getCredentials();
-  const res = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type:    'client_credentials',
-      client_id:     clientId,
-      client_secret: clientSecret,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`OAuth token request failed ${res.status}: ${text}`);
-  }
-  const data   = await res.json();
-  _token       = data.access_token;
-  _tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-  return _token;
-}
-
-async function gql(query, variables = {}) {
-  const token = await getToken();
-  const res   = await fetch(GQL_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    body:    JSON.stringify({ query, variables }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GraphQL request failed ${res.status}: ${text}`);
-  }
-  const json = await res.json();
-  if (json.errors?.length) {
-    throw new Error(`GraphQL error: ${json.errors.map(e => e.message).join(', ')}`);
-  }
-  return json.data;
-}
+export { getCurrentZones };
 
 // ---------------------------------------------------------------------------
 // M+ rankings — fetches both dps and hps metrics in one request using aliases.
@@ -69,6 +16,7 @@ async function gql(query, variables = {}) {
 // krsi is not supported on M+ zones — dps compares within role automatically.
 // ---------------------------------------------------------------------------
 export async function getCharacterMythicPlusData(name, serverSlug, serverRegion) {
+  const { mplusZone } = await getCurrentZones();
   const data = await gql(`
     query MythicPlusData($name: String!, $serverSlug: String!, $serverRegion: String!, $zoneID: Int!) {
       characterData {
@@ -81,7 +29,7 @@ export async function getCharacterMythicPlusData(name, serverSlug, serverRegion)
         }
       }
     }
-  `, { name, serverSlug, serverRegion, zoneID: CURRENT_MPLUS_ZONE });
+  `, { name, serverSlug, serverRegion, zoneID: mplusZone });
 
   return data?.characterData?.character ?? null;
 }
@@ -91,6 +39,7 @@ export async function getCharacterMythicPlusData(name, serverSlug, serverRegion)
 // metric varies by role: dps | hps | krsi
 // ---------------------------------------------------------------------------
 export async function getCharacterRaidData(name, serverSlug, serverRegion, metric = null) {
+  const { raidZone } = await getCurrentZones();
   const metricClause = metric ? `metric: ${metric}, ` : '';
   const data = await gql(`
     query RaidRankings($name: String!, $serverSlug: String!, $serverRegion: String!, $zoneID: Int!) {
@@ -101,7 +50,7 @@ export async function getCharacterRaidData(name, serverSlug, serverRegion, metri
         }
       }
     }
-  `, { name, serverSlug, serverRegion, zoneID: CURRENT_RAID_ZONE });
+  `, { name, serverSlug, serverRegion, zoneID: raidZone });
 
   return data?.characterData?.character ?? null;
 }

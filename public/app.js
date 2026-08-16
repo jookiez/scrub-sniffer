@@ -319,8 +319,14 @@ async function fetchLookup(name, server, region) {
 }
 
 function renderResultHtml(data) {
-  const { character, reasons, mplus, healerDmg, raid, interrupts, topDps, reportLinks = {} } = data;
+  const { character, reasons, mplus, healerDmg, raid, interrupts, topDps, reportLinks = {}, season = {} } = data;
   const { role } = character;
+
+  // Which season/tier the numbers come from — resolved server-side, so it stays
+  // right across a season rollover without a frontend change.
+  const seasonTag = label => label
+    ? ` <span style="color:#8b949e;font-weight:400;font-size:.78rem">${label}</span>`
+    : '';
 
   const isLoser = character.name.toLowerCase() === 'skawalker' &&
                   character.server.toLowerCase() === 'alleria';
@@ -359,7 +365,7 @@ function renderResultHtml(data) {
     </div>
 
     <div class="card">
-      <div class="section-title">Mythic+ ${metricLabel}</div>
+      <div class="section-title">Mythic+ ${metricLabel}${seasonTag(season.mplus)}</div>
       ${mplus.hasLogs ? `
         <div class="stat-row"><span>Avg parse</span><span class="stat-val" style="color:${parseColor(mplus.avgPercentile)}">${mplus.avgPercentile}%</span></div>
         <div class="stat-row"><span>Runs sampled</span><span class="stat-val">${mplus.runs.length}</span></div>
@@ -375,7 +381,7 @@ function renderResultHtml(data) {
 
     ${healerDmg ? `
     <div class="card">
-      <div class="section-title">Mythic+ Damage</div>
+      <div class="section-title">Mythic+ Damage${seasonTag(season.mplus)}</div>
       ${healerDmg.hasLogs ? `
         <div class="stat-row"><span>Avg parse</span><span class="stat-val" style="color:${parseColor(healerDmg.avgPercentile)}">${healerDmg.avgPercentile}%</span></div>
         <div class="stat-row"><span>Runs sampled</span><span class="stat-val">${healerDmg.runs.length}</span></div>
@@ -389,7 +395,7 @@ function renderResultHtml(data) {
     ` : ''}
 
     <div class="card">
-      <div class="section-title">Raid</div>
+      <div class="section-title">Raid${seasonTag(season.raid)}</div>
       ${raid.hasLogs ? `
         <div class="stat-row"><span>Avg parse</span><span class="stat-val" style="color:${parseColor(raid.avgParse)}">${raid.avgParse}%</span></div>
         <div class="stat-row"><span>Mythic encounters</span><span class="stat-val">${raid.mythicCount}</span></div>

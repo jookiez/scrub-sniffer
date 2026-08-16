@@ -4,7 +4,7 @@
  * Example: node --env-file=.env src/index.js Arthas area-52 us
  */
 
-import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBestRuns } from './api/warcraftlogs-v2.js';
+import { getCharacterMythicPlusData, getCharacterRaidData, getInterruptsFromBestRuns, getCurrentZones } from './api/warcraftlogs-v2.js';
 import { summarizeRaid, summarizeMythicPlus, summarizeInterrupts, summarizeTopDps, getVerdict } from './utils/grader.js';
 import { detectRole, extractSpecFromRankings, ROLE_CONFIG } from './utils/roles.js';
 
@@ -20,6 +20,9 @@ const DIVIDER = '='.repeat(56);
 
 async function sniff(name, serverSlug, reg) {
   console.log(`\n👃 Scrub Sniffer — checking ${name}-${serverSlug} (${reg.toUpperCase()})\n`);
+
+  const zones = await getCurrentZones();
+  console.log(`  Season: ${zones.mplusLabel} (zone ${zones.mplusZone}) | Raid: ${zones.raidLabel} (zone ${zones.raidZone}) [${zones.source}]`);
 
   // Step 1: M+ query — also used to detect role/spec from allStars
   const charMplus = await getCharacterMythicPlusData(name, serverSlug, reg);
