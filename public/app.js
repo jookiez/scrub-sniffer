@@ -330,9 +330,12 @@ function renderResultHtml(data) {
 
   const isLoser = character.name.toLowerCase() === 'skawalker' &&
                   character.server.toLowerCase() === 'alleria';
-  const verdict  = isLoser ? 'SCRUB' : data.verdict;
+  // Blashter-alleria always passes, and passes in style.
+  const isBlashter = character.name.toLowerCase() === 'blashter' &&
+                     character.server.toLowerCase() === 'alleria';
+  const verdict  = isLoser ? 'SCRUB' : isBlashter ? 'PASS' : data.verdict;
   const isPass   = !isLoser && verdict === 'PASS';
-  const badgeText = isLoser ? 'ABSOLUTE LOSER' : verdict;
+  const badgeText = isLoser ? 'ABSOLUTE LOSER' : isBlashter ? "BLASHTIN'" : verdict;
   const metricLabel = 'Score';
 
   const runsHtml = buildRunsHtml(mplus.runs ?? [], reportLinks);
