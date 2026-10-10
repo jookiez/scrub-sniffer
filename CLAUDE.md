@@ -63,7 +63,8 @@ VS/DR/MQD=46, The Venomous Abyss=53.
 
 ## Role detection and grading
 
-Role is auto-detected from the spec name in `allStars[0].spec` on M+ rankings.
+Role is auto-detected from the M+ spec with the most key score: the highest-`points`
+entry in `pointsAndDamageRankings.allStars` (lists every spec the character has keys on).
 
 | Role   | M+ metric              | Raid metric | M+ threshold | M+ int-bonus threshold             | Raid threshold |
 |--------|------------------------|-------------|--------------|------------------------------------|----------------|
@@ -95,8 +96,9 @@ pointsAndHealingRankings: zoneRankings(zoneID: $zoneID, metric: points_and_heali
 dpsRankings:              zoneRankings(zoneID: $zoneID, metric: dps)
 ```
 
-- `dpsRankings` is kept for spec detection only (`allStars[0].spec` reliably identifies DPS and tank specs)
-- `pointsAndHealingRankings.allStars[0].spec` is used as fallback for healer spec detection
+- Spec = highest-`points` entry of the `points_*` allStars. **Do not use `dpsRankings.allStars` first** —
+  the `dps` metric doesn't rank healer specs, so a healer with any tank/DPS offspec keys gets detected as
+  the offspec (zambonii-alleria: Holy 3549 pts graded as Protection 3101). `dpsRankings` is now only a fallback.
 - Role is detected first, then the correct blob is passed to `summarizeMythicPlus`
 
 ## Interrupt logic

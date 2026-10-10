@@ -79,12 +79,19 @@ export const ROLE_CONFIG = {
 };
 
 /**
- * Extract the primary spec name from M+ data (which has dpsRankings + hpsRankings).
- * Tries dps first (covers DPS and tank), then hps (healers).
+ * Extract the primary spec name from M+ data: the spec with the most key score.
+ *
+ * The points_* allStars list every spec the character has timed keys on, with
+ * its score. The dps metric does not rank healer specs at all, so its allStars
+ * only ever shows a healer's tank/DPS offspec. Checking it first graded a Holy
+ * Paladin with 3549 points as the Protection offspec they had 3101 on.
  */
 export function extractSpecFromRankings(charMplusData) {
-  return charMplusData?.dpsRankings?.allStars?.[0]?.spec
-      ?? charMplusData?.pointsAndHealingRankings?.allStars?.[0]?.spec
-      ?? charMplusData?.pointsAndDamageRankings?.allStars?.[0]?.spec
+  const allStars = charMplusData?.pointsAndDamageRankings?.allStars
+                ?? charMplusData?.pointsAndHealingRankings?.allStars
+                ?? [];
+  const main = allStars.reduce((best, s) => (s.points ?? 0) > (best?.points ?? 0) ? s : best, null);
+  return main?.spec
+      ?? charMplusData?.dpsRankings?.allStars?.[0]?.spec
       ?? null;
 }
