@@ -338,6 +338,19 @@ function renderResultHtml(data) {
   const badgeText = isLoser ? 'ABSOLUTE LOSER' : isBlashster ? "BLASHTIN'" : verdict;
   const metricLabel = 'Score';
 
+  // ...but his damage gets an arrow drawn at it. The font is a few-KB subset of
+  // just these letters, and only loads when this callout is on screen.
+  const taxCallout = isBlashster ? `
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Permanent+Marker&text=${encodeURIComponent('hes payin dookiez tax')}&display=swap">
+    <span class="dookiez-tax">
+      <span>hes payin dookiez tax</span>
+      <svg viewBox="0 0 44 22" aria-hidden="true">
+        <path pathLength="1" d="M2 15 C 10 5, 24 3, 39 11" />
+        <path pathLength="1" d="M30 4 L40 11 L30 17" />
+      </svg>
+    </span>
+  ` : '';
+
   const runsHtml = buildRunsHtml(mplus.runs ?? [], reportLinks);
 
   const reasonsHtml = reasons.map(r => `
@@ -370,7 +383,7 @@ function renderResultHtml(data) {
     <div class="card">
       <div class="section-title">Mythic+ ${metricLabel}${seasonTag(season.mplus)}</div>
       ${mplus.hasLogs ? `
-        <div class="stat-row"><span>Avg parse</span><span class="stat-val" style="color:${parseColor(mplus.avgPercentile)}">${mplus.avgPercentile}%</span></div>
+        <div class="stat-row"><span>Avg parse</span>${taxCallout}<span class="stat-val" style="color:${parseColor(mplus.avgPercentile)}">${mplus.avgPercentile}%</span></div>
         <div class="stat-row"><span>Runs sampled</span><span class="stat-val">${mplus.runs.length}</span></div>
         ${intLine}
         ${topDpsLine}

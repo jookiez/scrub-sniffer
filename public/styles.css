@@ -179,6 +179,42 @@ button:disabled{ background: #4a3f1a; color: #6e5a1a; cursor: not-allowed; }
 .stat-row:last-child { border-bottom: none; }
 .stat-val { font-weight: 600; color: #e6edf3; }
 
+/* Blashster's hand-drawn "dookiez tax" arrow, pointing at his M+ damage */
+.dookiez-tax {
+  margin: 0 6px 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #f85149;
+  font-family: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+  font-size: 1.1rem;
+  line-height: 1.1;
+  text-align: right;
+  text-wrap: balance;
+  transform: rotate(-4deg) translateY(-3px);
+}
+.stat-row:has(.dookiez-tax) > span:first-child { white-space: nowrap; }
+.dookiez-tax svg {
+  width: 44px;
+  height: 22px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dookiez-tax path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: dookiez-draw .35s ease-out .2s forwards;
+}
+.dookiez-tax path + path { animation-duration: .15s; animation-delay: .55s; }
+@keyframes dookiez-draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .dookiez-tax path { animation: none; stroke-dashoffset: 0; }
+}
+
 .parse-bar-wrap { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
 
 .parse-row {
